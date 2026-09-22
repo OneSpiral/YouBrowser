@@ -59,6 +59,9 @@ jobs:
             exit 1
           fi
           test ! -f .youbrowser-large/oversize.body.txt
+          bun run src/cli.ts capture examples/batch.json
+          test -f .youbrowser-batch/home.body.txt
+          cmp tests/site/data.json .youbrowser-batch/data.body.txt
           if bun run src/cli.ts capture tests/fixtures/capture-missing.json; then
             echo 'missing capture returned success' >&2
             exit 1
