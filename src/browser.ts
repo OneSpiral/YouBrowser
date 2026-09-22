@@ -4,22 +4,14 @@ import { chromium } from "playwright";
 import type { Adapter, RunContext } from "./adapter.js";
 import { parseBrowserContract } from "./browser-contract.js";
 import { evaluateCheck } from "./check.js";
+import { scenarioVerdict } from "./result.js";
 import type {
   AcceptanceContract,
   BrowserCheck,
   BrowserScenario,
   ScenarioReport,
-  Verdict,
   WebTarget,
 } from "./model.js";
-
-function aggregate(checks: ScenarioReport["checks"]): Verdict {
-  const must = checks.filter((check) => check.severity === "must");
-  if (must.some((check) => check.verdict === "FAIL")) return "FAIL";
-  if (must.some((check) => check.verdict === "BLOCKED")) return "BLOCKED";
-  if (must.length > 0 && must.every((check) => check.verdict === "SKIPPED")) return "SKIPPED";
-  return "PASS";
-}
 
 function scenarioUrl(target: WebTarget, scenario: BrowserScenario): string {
   return new URL(scenario.path ?? "/", target.baseUrl).toString();
@@ -110,7 +102,7 @@ export const browserAdapter: Adapter = {
 
         reports.push({
           id: scenario.id,
-          verdict: aggregate(checks),
+          verdict: scenarioVerdict(checks),
           evidence: {
             url,
             ...(status === undefined ? {} : { status }),
