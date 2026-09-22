@@ -1,5 +1,5 @@
 import { mkdir } from "node:fs/promises";
-import { resolve } from "node:path";
+import { relative, resolve } from "node:path";
 import { chromium } from "playwright";
 import type { Adapter, RunContext } from "./adapter.js";
 import { evaluateCheck } from "./check.js";
@@ -100,6 +100,7 @@ export const browserAdapter: Adapter = {
                 ...(status === undefined ? {} : { status }),
                 ...(title === undefined ? {} : { title }),
                 consoleErrors,
+                pageErrors,
               }),
             );
           }
@@ -114,7 +115,7 @@ export const browserAdapter: Adapter = {
             ...(title === undefined ? {} : { title }),
             consoleErrors,
             pageErrors,
-            ...(screenshot ? { screenshot } : {}),
+            ...(screenshot ? { screenshot: relative(context.cwd, screenshot) } : {}),
           },
           checks,
         });
