@@ -8,14 +8,20 @@
     {
       "id": "desktop",
       "path": "/",
-      "viewport": { "width": 1440, "height": 900 },
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
       "colorScheme": "light",
       "reducedMotion": "no-preference"
     },
     {
       "id": "mobile",
       "path": "/",
-      "viewport": { "width": 390, "height": 844 },
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
       "colorScheme": "dark",
       "reducedMotion": "reduce"
     }
@@ -64,6 +70,7 @@
   ],
   "evidence": {
     "dir": ".youbrowser",
-    "screenshots": true
+    "screenshots": true,
+    "fullPage": false
   }
 }
