@@ -2,11 +2,12 @@ import { mkdir } from "node:fs/promises";
 import { relative, resolve } from "node:path";
 import { chromium } from "playwright";
 import type { Adapter, RunContext } from "./adapter.js";
+import { parseBrowserContract } from "./browser-contract.js";
 import { evaluateCheck } from "./check.js";
 import type {
   AcceptanceContract,
   BrowserCheck,
-  Scenario,
+  BrowserScenario,
   ScenarioReport,
   Verdict,
   WebTarget,
@@ -20,7 +21,7 @@ function aggregate(checks: ScenarioReport["checks"]): Verdict {
   return "PASS";
 }
 
-function scenarioUrl(target: WebTarget, scenario: Scenario): string {
+function scenarioUrl(target: WebTarget, scenario: BrowserScenario): string {
   return new URL(scenario.path ?? "/", target.baseUrl).toString();
 }
 
@@ -28,10 +29,8 @@ export const browserAdapter: Adapter = {
   kind: "web",
 
   async run(contract: AcceptanceContract, context: RunContext): Promise<ScenarioReport[]> {
-    const target = contract.target as WebTarget;
-    if (typeof target.baseUrl !== "string" || target.baseUrl.trim() === "") {
-      throw new Error("web target requires target.baseUrl");
-    }
+    const browserContract = parseBrowserContract(contract);
+    const target = browserContract.target;
 
     await mkdir(context.evidenceDir, { recursive: true });
     const browser = await chromium.launch();
@@ -39,7 +38,7 @@ export const browserAdapter: Adapter = {
     try {
       const reports: ScenarioReport[] = [];
 
-      for (const scenario of contract.scenarios) {
+      for (const scenario of browserContract.scenarios) {
         const consoleErrors: string[] = [];
         const pageErrors: string[] = [];
         const browserContext = await browser.newContext({
@@ -76,7 +75,7 @@ export const browserAdapter: Adapter = {
 
           title = await page.title();
 
-          if (contract.evidence?.screenshots !== false) {
+          if (browserContract.evidence?.screenshots !== false) {
             screenshot = resolve(context.evidenceDir, `${scenario.id}.png`);
             await page.screenshot({ path: screenshot, fullPage: true });
           }
@@ -86,7 +85,7 @@ export const browserAdapter: Adapter = {
 
         let checks: ScenarioReport["checks"] = [];
         if (scenarioBlocked) {
-          checks = contract.checks.map((check) => ({
+          checks = browserContract.checks.map((check) => ({
             id: check.id,
             type: check.type,
             severity: check.severity ?? "must",
@@ -94,7 +93,7 @@ export const browserAdapter: Adapter = {
             message: scenarioBlocked!,
           }));
         } else {
-          for (const check of contract.checks as BrowserCheck[]) {
+          for (const check of browserContract.checks as BrowserCheck[]) {
             checks.push(
               await evaluateCheck(page, scenario, check, {
                 ...(status === undefined ? {} : { status }),
