@@ -67,6 +67,16 @@ There is no universal scalar quality score. Qualitative judgment should be repre
 by explicit judge adapters with named criteria and retained evidence, not hidden inside
 a number.
 
+## Declared coverage
+
+A contract is not satisfied merely because an adapter returned a collection
+of passing results. The runner audits the complete declared scenario × check
+matrix, including scope, check identity, type and severity. A missing/duplicate
+scenario or check, a selected check marked SKIPPED, or a mismatched scenario
+verdict is recorded in `coverage.problems`. Incomplete coverage blocks the
+overall verdict unless an actual required check already establishes FAIL.
+Scenarios with no applicable must checks are SKIPPED, not PASS.
+
 ## Receipt
 
 `verify` writes `report.json`, `report.md` and `receipt.json`.
