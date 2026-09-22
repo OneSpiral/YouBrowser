@@ -34,6 +34,13 @@ export type AcceptanceContract = {
   evidence?: EvidenceConfig;
 };
 
+export type CaptureContract = {
+  version: 1;
+  target: Target;
+  scenarios: ScenarioSpec[];
+  evidence?: EvidenceConfig;
+};
+
 export type CheckResult = {
   id: string;
   type: string;
@@ -54,6 +61,35 @@ export type ScenarioReport = {
   verdict: Verdict;
   evidence: ScenarioEvidence;
   checks: CheckResult[];
+};
+
+export type CaptureReport = {
+  version: 1;
+  target: Target;
+  startedAt: string;
+  finishedAt: string;
+  scenarios: Array<{
+    id: string;
+    evidence: ScenarioEvidence;
+  }>;
+};
+
+export type AcceptanceReceipt = {
+  version: 1;
+  protocol: 1;
+  kind: "acceptance";
+  targetKind: string;
+  verdict: Verdict;
+  contractSha256: string;
+  reportSha256: string;
+  startedAt: string;
+  finishedAt: string;
+  summary: AcceptanceReport["summary"];
+  scenarios: Array<{
+    id: string;
+    verdict: Verdict;
+  }>;
+  receiptSha256: string;
 };
 
 export type AcceptanceReport = {
