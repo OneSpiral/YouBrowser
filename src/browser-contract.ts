@@ -142,6 +142,15 @@ function browserCheck(value: unknown, index: number): BrowserCheck {
       };
     case "console":
       return { ...common, type, maxErrors: integer(raw.maxErrors, `checks[${index}].maxErrors`) };
+    case "navigation": {
+      if (raw.metric !== "ttfb" && raw.metric !== "domContentLoaded") {
+        throw new Error(`checks[${index}].metric must be ttfb or domContentLoaded`);
+      }
+      if (typeof raw.maxMs !== "number" || !Number.isFinite(raw.maxMs) || raw.maxMs <= 0) {
+        throw new Error(`checks[${index}].maxMs must be a positive finite number`);
+      }
+      return { ...common, type, metric: raw.metric, maxMs: raw.maxMs };
+    }
     case "overflow":
       if (raw.axis !== "x" && raw.axis !== "y") throw new Error(`checks[${index}].axis must be x or y`);
       return {
