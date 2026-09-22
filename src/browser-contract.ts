@@ -12,6 +12,7 @@ export type BrowserContract = Omit<AcceptanceContract, "target" | "scenarios" | 
   checks: BrowserCheck[];
   evidence?: AcceptanceContract["evidence"] & {
     screenshots?: boolean;
+    fullPage?: boolean;
   };
 };
 
@@ -162,6 +163,9 @@ export function parseBrowserContract(contract: AcceptanceContract): BrowserContr
   if (evidenceRaw.screenshots !== undefined && typeof evidenceRaw.screenshots !== "boolean") {
     throw new Error("evidence.screenshots must be boolean");
   }
+  if (evidenceRaw.fullPage !== undefined && typeof evidenceRaw.fullPage !== "boolean") {
+    throw new Error("evidence.fullPage must be boolean");
+  }
 
   return {
     ...contract,
@@ -171,6 +175,7 @@ export function parseBrowserContract(contract: AcceptanceContract): BrowserContr
     evidence: {
       ...evidenceRaw,
       ...(evidenceRaw.screenshots === undefined ? {} : { screenshots: evidenceRaw.screenshots }),
+      ...(evidenceRaw.fullPage === undefined ? {} : { fullPage: evidenceRaw.fullPage }),
     },
   };
 }
