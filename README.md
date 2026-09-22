@@ -2,11 +2,15 @@
 
 **Evidence-first acceptance runtime for agent and software outputs.**
 
-YouBrowser turns "looks done" into an explicit acceptance claim:
+YouBrowser has two deliberately separate modes:
 
 ```text
-Target → Scenario → Observation → Check → Evidence → Verdict
+capture: Target → Scenario → Observation → Evidence
+verify:  Target → Scenario → Observation → Check → Evidence → Verdict → Receipt
 ```
+
+`capture` gathers evidence without pretending that observation is acceptance.
+`verify` is fail-closed and produces an Acceptance Receipt only after required checks are evaluated.
 
 It starts with real-browser verification, but the protocol is target-agnostic. The long-term goal is one acceptance surface for web products, APIs, files, images, commands, repositories, research artifacts, and generated content.
 
@@ -110,16 +114,23 @@ Create an acceptance contract:
 }
 ```
 
-Run:
+Run acceptance:
 
 ```bash
 bun run src/cli.ts verify contract.json
+```
+
+Run observation-only capture:
+
+```bash
+bun run src/cli.ts capture capture.json
 ```
 
 or after building:
 
 ```bash
 youbrowser verify contract.json
+youbrowser capture capture.json
 ```
 
 Evidence lands in `.youbrowser/` by default:
@@ -128,7 +139,12 @@ Evidence lands in `.youbrowser/` by default:
 .youbrowser/
 ├── desktop.png
 ├── report.json
-└── report.md
+├── report.md
+└── receipt.json
+
+.youbrowser-capture/
+├── capture.json
+└── dataset.body.txt
 ```
 
 ## Verdict semantics
@@ -147,6 +163,10 @@ Check severity is independent:
 - `observe`: records evidence without changing acceptance.
 
 A verify contract must contain at least one `must` check. Empty verification cannot become `PASS`.
+
+A capture contract accepts no checks and emits no acceptance verdict. If criteria matter, use `verify`.
+
+Every successful verify execution writes `receipt.json` with SHA-256 fingerprints for the normalized contract, exact JSON report bytes, and the receipt payload itself. The receipt is evidence of what YouBrowser evaluated; it is not a cryptographic signature or external attestation.
 
 ## Architecture
 
