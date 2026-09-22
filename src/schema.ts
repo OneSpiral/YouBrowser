@@ -1,4 +1,4 @@
-import type { AcceptanceContract, BrowserCheck, Scenario } from "./model.js";
+import type { AcceptanceContract, BrowserCheck, Scenario, Severity } from "./model.js";
 
 function object(value: unknown, path: string): Record<string, unknown> {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
@@ -80,7 +80,7 @@ function parseCheck(value: unknown, index: number): BrowserCheck {
 
   const common = {
     id,
-    severity: severity as BrowserCheck["severity"],
+    severity: severity as Severity,
     ...(raw.scenarios === undefined
       ? {}
       : {
@@ -165,8 +165,11 @@ export function parseContract(value: unknown): AcceptanceContract {
   const raw = object(value, "contract");
   if (raw.version !== 1) throw new Error("contract.version must be 1");
 
-  const target = object(raw.target, "target");
-  string(target.kind, "target.kind");
+  const targetRaw = object(raw.target, "target");
+  const target = {
+    ...targetRaw,
+    kind: string(targetRaw.kind, "target.kind"),
+  };
 
   if (!Array.isArray(raw.scenarios) || raw.scenarios.length === 0) {
     throw new Error("contract.scenarios must contain at least one scenario");
