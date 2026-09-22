@@ -49,6 +49,7 @@ export const browserAdapter: Adapter = {
         let status: number | undefined;
         let title: string | undefined;
         let screenshot: string | undefined;
+        let navigation: { ttfbMs: number; domContentLoadedMs: number } | null = null;
         let scenarioBlocked: string | null = null;
 
         try {
@@ -66,6 +67,17 @@ export const browserAdapter: Adapter = {
           }
 
           title = await page.title();
+          navigation = await page.evaluate(() => {
+            const entry = performance.getEntriesByType("navigation")[0] as
+              | PerformanceNavigationTiming
+              | undefined;
+            return entry
+              ? {
+                  ttfbMs: entry.responseStart,
+                  domContentLoadedMs: entry.domContentLoadedEventEnd,
+                }
+              : null;
+          });
 
           if (browserContract.evidence?.screenshots !== false) {
             screenshot = resolve(context.evidenceDir, `${scenario.id}.png`);
@@ -109,6 +121,7 @@ export const browserAdapter: Adapter = {
             ...(title === undefined ? {} : { title }),
             consoleErrors,
             pageErrors,
+            ...(navigation ? { navigation } : {}),
             ...(screenshot ? { screenshot: relative(context.cwd, screenshot) } : {}),
             ...(scenarioBlocked ? { error: scenarioBlocked } : {}),
           },
