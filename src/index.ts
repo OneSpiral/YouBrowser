@@ -12,5 +12,6 @@ registerAdapter(fileAdapter);
 export { adapterKinds, getAdapter, registerAdapter } from "./adapter.js";
 export type { Adapter, RunContext } from "./adapter.js";
 export type * from "./model.js";
-export { parseContract } from "./schema.js";
+export { capture } from "./capture.js";
+export { parseCaptureContract, parseContract } from "./schema.js";
 export { verify } from "./verify.js";
