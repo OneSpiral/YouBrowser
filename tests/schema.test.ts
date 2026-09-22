@@ -46,6 +46,22 @@ describe("acceptance contract", () => {
     ).toThrow("do not accept checks");
   });
 
+  test("rejects scenario traversal before writing any artifact", () => {
+    expect(() => parseCaptureContract({
+      version: 1,
+      target: { kind: "http", baseUrl: "https://example.com" },
+      scenarios: [{ id: "../outside", path: "/" }],
+      evidence: { body: true },
+    })).toThrow("safe identifier");
+  });
+
+  test("rejects check IDs with path separators", () => {
+    expect(() => parseContract({
+      ...valid,
+      checks: [{ id: "a/b", type: "status", equals: 200, severity: "must" }],
+    })).toThrow("safe identifier");
+  });
+
   test("rejects checks scoped to an unknown scenario", () => {
     expect(() =>
       parseContract({
