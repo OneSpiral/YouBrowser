@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
 import { relative, resolve } from "node:path";
 import type { Adapter, RunContext } from "./adapter.js";
@@ -26,6 +27,7 @@ type HttpScenario = ScenarioSpec & {
   body?: string;
   json?: unknown;
   timeoutMs?: number;
+  maxBytes?: number;
 };
 
 type HttpCheck =
@@ -79,10 +81,43 @@ function parseTarget(contract: AcceptanceContract): HttpTarget {
   };
 }
 
+const DEFAULT_MAX_BYTES = 16 * 1024 * 1024;
+const HARD_MAX_BYTES = 100 * 1024 * 1024;
+
+async function readBounded(response: Response, maxBytes: number): Promise<Buffer> {
+  const length = response.headers.get("content-length");
+  if (length !== null && Number.isFinite(Number(length)) && Number(length) > maxBytes) {
+    throw new Error(`HTTP body exceeds maxBytes=${maxBytes} (content-length=${length})`);
+  }
+  const reader = response.body?.getReader();
+  if (!reader) return Buffer.alloc(0);
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      total += value.byteLength;
+      if (total > maxBytes) {
+        await reader.cancel();
+        throw new Error(`HTTP body exceeds maxBytes=${maxBytes}`);
+      }
+      chunks.push(value);
+    }
+    return Buffer.concat(chunks, total);
+  } finally {
+    reader.releaseLock();
+  }
+}
+
 function parseScenario(value: ScenarioSpec, index: number): HttpScenario {
   const raw = value as Record<string, unknown>;
   const timeoutMs = raw.timeoutMs === undefined ? undefined : number(raw.timeoutMs, `scenarios[${index}].timeoutMs`);
   if (timeoutMs !== undefined && timeoutMs <= 0) throw new Error(`scenarios[${index}].timeoutMs must be > 0`);
+  const maxBytes = raw.maxBytes === undefined ? DEFAULT_MAX_BYTES : number(raw.maxBytes, `scenarios[${index}].maxBytes`);
+  if (!Number.isInteger(maxBytes) || maxBytes <= 0 || maxBytes > HARD_MAX_BYTES) {
+    throw new Error(`scenarios[${index}].maxBytes must be an integer from 1 to ${HARD_MAX_BYTES}`);
+  }
   return {
     id: value.id,
     ...(raw.path === undefined ? {} : { path: nonEmpty(raw.path, `scenarios[${index}].path`) }),
@@ -91,6 +126,7 @@ function parseScenario(value: ScenarioSpec, index: number): HttpScenario {
     ...(raw.body === undefined ? {} : { body: nonEmpty(raw.body, `scenarios[${index}].body`) }),
     ...(raw.json === undefined ? {} : { json: raw.json }),
     ...(timeoutMs === undefined ? {} : { timeoutMs }),
+    maxBytes,
   };
 }
 
@@ -177,6 +213,7 @@ export const httpAdapter: Adapter = {
       const url = new URL(scenario.path ?? "/", target.baseUrl).toString();
       const started = performance.now();
       let response: Response | null = null;
+      let body = Buffer.alloc(0);
       let text = "";
       let blocked: string | null = null;
 
@@ -196,7 +233,8 @@ export const httpAdapter: Adapter = {
               : {}),
           signal: controller.signal,
         });
-        text = await response.text();
+        body = await readBounded(response, scenario.maxBytes ?? DEFAULT_MAX_BYTES);
+        text = body.toString("utf8");
       } catch (error) {
         blocked = error instanceof Error ? error.message : String(error);
       } finally {
@@ -239,6 +277,11 @@ export const httpAdapter: Adapter = {
             break;
           }
           case "body": {
+            const mime = response.headers.get("content-type") ?? "";
+            if (mime && !/(^text\/|json|xml|javascript|x-www-form-urlencoded)/i.test(mime)) {
+              results.push(checkResult(check, "BLOCKED", "text check requires a textual HTTP response"));
+              break;
+            }
             const pass = matches(text, check.match, check.value);
             results.push(checkResult(check, pass ? "PASS" : "FAIL", pass ? "body matched" : "body differed", { match: check.match, value: check.value }, text.slice(0, 500)));
             break;
@@ -265,9 +308,11 @@ export const httpAdapter: Adapter = {
 
       const saveBody = contract.evidence?.body === true;
       let bodyArtifact: string | undefined;
-      if (saveBody && response) {
-        const absolute = resolve(context.evidenceDir, `${scenario.id}.body.txt`);
-        await writeFile(absolute, text);
+      if (saveBody && response && !blocked) {
+        const mime = response.headers.get("content-type") ?? "";
+        const textual = !mime || /(^text\/|json|xml|javascript|x-www-form-urlencoded)/i.test(mime);
+        const absolute = resolve(context.evidenceDir, `${scenario.id}.body.${textual ? "txt" : "bin"}`);
+        await writeFile(absolute, body);
         bodyArtifact = relative(context.cwd, absolute);
       }
 
@@ -290,7 +335,9 @@ export const httpAdapter: Adapter = {
               }
             : {}),
           durationMs,
-          bodyBytes: new TextEncoder().encode(text).byteLength,
+          bodyBytes: body.byteLength,
+          ...(blocked ? {} : { bodySha256: createHash("sha256").update(body).digest("hex") }),
+          maxBytes: scenario.maxBytes,
           ...(bodyArtifact ? { artifacts: [bodyArtifact] } : {}),
           ...(blocked ? { error: blocked } : {}),
         },
