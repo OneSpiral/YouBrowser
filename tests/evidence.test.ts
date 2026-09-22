@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join, relative } from "node:path";
 import "../src/index.js";
 import { capture } from "../src/capture.js";
-import { reportTarget, redactSecrets } from "../src/redact.js";
+import { reportHeader, reportTarget, redactSecrets } from "../src/redact.js";
 import { parseCaptureContract } from "../src/schema.js";
 import { writeReport } from "../src/report.js";
 import { inspectReceipt, writeReceipt } from "../src/receipt.js";
@@ -118,6 +118,8 @@ describe("persisted evidence privacy", () => {
     });
     expect(result.env).toEqual({ PRIVATE_TOKEN: "[REDACTED]", APP_MODE: "test" });
     expect(target.headers.Authorization).toBe("Bearer private");
+    expect(reportHeader("set-cookie", "sid=private")).toBe("[REDACTED]");
+    expect(reportHeader("content-type", "application/json")).toBe("application/json");
     expect(redactSecrets({ "set-cookie": "session=abc", status: 200 }))
       .toEqual({ "set-cookie": "[REDACTED]", status: 200 });
   });
