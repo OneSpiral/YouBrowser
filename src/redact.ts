@@ -18,6 +18,10 @@ export function redactSecrets(value: unknown): unknown {
   );
 }
 
+export function reportHeader(name: string, value: string): string {
+  return sensitive.test(name) ? REDACTED : value;
+}
+
 export function reportTarget(target: Target): Target {
   return redactSecrets(target) as Target;
 }
