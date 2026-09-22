@@ -3,16 +3,17 @@
 YouBrowser separates five things that are often collapsed into one word: "validation".
 
 ```text
-Target → Scenario → Observation → Check → Evidence → Verdict
+capture: Target → Scenario → Observation → Evidence
+verify:  Target → Scenario → Observation → Check → Evidence → Verdict → Receipt
 ```
 
 ## Target
 
 The thing being accepted. A target has a `kind` owned by an adapter.
 
-Version 0.1 ships the `web` adapter. The protocol is intentionally open to future
-`http`, `file`, `json`, `image`, `command`, `repo`, `research`, and
-`content` adapters without changing the verdict model.
+The current draft implements `web`, `http`, `file`, and `command`.
+Other target kinds remain planned until they satisfy the adapter promotion
+rule in [adapters.md](adapters.md).
 
 ## Scenario
 
@@ -46,7 +47,12 @@ A check may be scoped to selected scenarios.
 
 Evidence is retained material that lets a human or agent inspect what actually happened.
 
-Evidence is not canonical truth and is not the verdict itself.
+Evidence is not canonical truth and is not the verdict itself. Capture
+reports retain observation states (`CAPTURED` / `BLOCKED`), never acceptance
+verdicts. Verify reports retain individual check results and an overall
+verdict. Retained screenshot/body artifacts are fingerprinted by SHA-256,
+and local receipt inspection rechecks their bytes. A receipt is not a
+signature or external attestation.
 
 ## Verdict
 
@@ -60,6 +66,15 @@ The protocol uses four states:
 There is no universal scalar quality score. Qualitative judgment should be represented
 by explicit judge adapters with named criteria and retained evidence, not hidden inside
 a number.
+
+## Receipt
+
+`verify` writes `report.json`, `report.md` and `receipt.json`.
+The receipt records the canonical original contract digest, exact report
+bytes digest, and retained artifact digests. `receipt` mode rechecks these
+facts without rerunning the target. If an artifact is unavailable or changed,
+the inspection is invalid. A failed verification run may still emit a
+traceable receipt; receipt validity never turns `FAIL` into `PASS`.
 
 ## Adapter boundary
 
