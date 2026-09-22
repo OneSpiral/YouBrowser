@@ -34,8 +34,11 @@ export async function writeReport(
     ...report.scenarios.flatMap((scenario) => [
       `## ${scenario.id} — ${scenario.verdict}`,
       "",
-      `URL: ${scenario.evidence.url}`,
-      ...(scenario.evidence.screenshot ? [`Screenshot: ${scenario.evidence.screenshot}`] : []),
+      "### Evidence",
+      "",
+      "\`\`\`json",
+      JSON.stringify(scenario.evidence, null, 2),
+      "\`\`\`",
       "",
       ...scenario.checks.map(line),
       "",
