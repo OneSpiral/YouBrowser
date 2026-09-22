@@ -11,6 +11,7 @@ type Observation = {
   status?: number;
   title?: string;
   consoleErrors: string[];
+  pageErrors: string[];
 };
 
 function severityOf(check: BrowserCheck): Severity {
@@ -61,7 +62,11 @@ export async function evaluateCheck(
           pass ? "PASS" : "FAIL",
           pass ? "HTTP status matched" : "HTTP status differed",
           check.equals,
-          actual,
+          {
+            total: actual,
+            console: observation.consoleErrors,
+            page: observation.pageErrors,
+          },
         );
       }
       case "title": {
@@ -122,7 +127,7 @@ export async function evaluateCheck(
         );
       }
       case "console": {
-        const actual = observation.consoleErrors.length;
+        const actual = observation.consoleErrors.length + observation.pageErrors.length;
         const pass = actual <= check.maxErrors;
         return result(
           check,
