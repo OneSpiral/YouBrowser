@@ -180,14 +180,16 @@ export const httpAdapter: Adapter = {
       let blocked: string | null = null;
 
       try {
+        const requestHeaders = {
+          ...(scenario.json !== undefined ? { "content-type": "application/json" } : {}),
+          ...target.headers,
+          ...scenario.headers,
+        };
         response = await fetch(url, {
           method: scenario.method ?? "GET",
-          headers: { ...target.headers, ...scenario.headers },
+          headers: requestHeaders,
           ...(scenario.json !== undefined
-            ? {
-                body: JSON.stringify(scenario.json),
-                headers: { "content-type": "application/json", ...target.headers, ...scenario.headers },
-              }
+            ? { body: JSON.stringify(scenario.json) }
             : scenario.body !== undefined
               ? { body: scenario.body }
               : {}),
@@ -274,7 +276,18 @@ export const httpAdapter: Adapter = {
         evidence: {
           url,
           method: scenario.method ?? "GET",
-          ...(response ? { status: response.status, headers: Object.fromEntries(response.headers.entries()) } : {}),
+          ...(response
+            ? {
+                status: response.status,
+                headers: (() => {
+                  const values: Record<string, string> = {};
+                  response.headers.forEach((value, key) => {
+                    values[key] = value;
+                  });
+                  return values;
+                })(),
+              }
+            : {}),
           durationMs,
           bodyBytes: new TextEncoder().encode(text).byteLength,
           ...(bodyArtifact ? { artifacts: [bodyArtifact] } : {}),
