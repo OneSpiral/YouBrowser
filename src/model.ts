@@ -8,105 +8,30 @@ export type Target = {
   [key: string]: unknown;
 };
 
-export type WebTarget = Target & {
-  kind: "web";
-  baseUrl: string;
-};
-
-export type Wait = {
-  selector?: string;
-  timeoutMs?: number;
-  networkIdle?: boolean;
-};
-
-export type Scenario = {
+export type ScenarioSpec = {
   id: string;
-  path?: string;
-  viewport?: {
-    width: number;
-    height: number;
-  };
-  colorScheme?: ColorScheme;
-  reducedMotion?: ReducedMotion;
-  locale?: string;
-  wait?: Wait;
+  [key: string]: unknown;
 };
 
-type CheckBase = {
+export type CheckSpec = {
   id: string;
+  type: string;
   severity?: Severity;
   scenarios?: string[];
+  [key: string]: unknown;
 };
 
-export type StatusCheck = CheckBase & {
-  type: "status";
-  equals: number;
+export type EvidenceConfig = {
+  dir?: string;
+  [key: string]: unknown;
 };
-
-export type TitleCheck = CheckBase & {
-  type: "title";
-  match: "equals" | "contains" | "regex";
-  value: string;
-};
-
-export type VisibleCheck = CheckBase & {
-  type: "visible";
-  selector: string;
-};
-
-export type TextCheck = CheckBase & {
-  type: "text";
-  selector: string;
-  match: "equals" | "contains" | "regex";
-  value: string;
-};
-
-export type CountCheck = CheckBase & {
-  type: "count";
-  selector: string;
-  equals?: number;
-  min?: number;
-  max?: number;
-};
-
-export type AttributeCheck = CheckBase & {
-  type: "attribute";
-  selector: string;
-  name: string;
-  match: "equals" | "contains" | "regex";
-  value: string;
-};
-
-export type ConsoleCheck = CheckBase & {
-  type: "console";
-  maxErrors: number;
-};
-
-export type OverflowCheck = CheckBase & {
-  type: "overflow";
-  axis: "x" | "y";
-  maxPx?: number;
-};
-
-export type BrowserCheck =
-  | StatusCheck
-  | TitleCheck
-  | VisibleCheck
-  | TextCheck
-  | CountCheck
-  | AttributeCheck
-  | ConsoleCheck
-  | OverflowCheck;
 
 export type AcceptanceContract = {
   version: 1;
   target: Target;
-  scenarios: Scenario[];
-  checks: BrowserCheck[];
-  evidence?: {
-    dir?: string;
-    screenshots?: boolean;
-  };
+  scenarios: ScenarioSpec[];
+  checks: CheckSpec[];
+  evidence?: EvidenceConfig;
 };
 
 export type CheckResult = {
@@ -120,12 +45,8 @@ export type CheckResult = {
 };
 
 export type ScenarioEvidence = {
-  screenshot?: string;
-  url: string;
-  status?: number;
-  title?: string;
-  consoleErrors: string[];
-  pageErrors: string[];
+  artifacts?: string[];
+  [key: string]: unknown;
 };
 
 export type ScenarioReport = {
@@ -150,3 +71,91 @@ export type AcceptanceReport = {
     warnings: number;
   };
 };
+
+export type WebTarget = Target & {
+  kind: "web";
+  baseUrl: string;
+};
+
+export type Wait = {
+  selector?: string;
+  timeoutMs?: number;
+  networkIdle?: boolean;
+};
+
+export type BrowserScenario = ScenarioSpec & {
+  path?: string;
+  viewport?: {
+    width: number;
+    height: number;
+  };
+  colorScheme?: ColorScheme;
+  reducedMotion?: ReducedMotion;
+  locale?: string;
+  wait?: Wait;
+};
+
+type BrowserCheckBase = CheckSpec & {
+  severity?: Severity;
+  scenarios?: string[];
+};
+
+export type StatusCheck = BrowserCheckBase & {
+  type: "status";
+  equals: number;
+};
+
+export type TitleCheck = BrowserCheckBase & {
+  type: "title";
+  match: "equals" | "contains" | "regex";
+  value: string;
+};
+
+export type VisibleCheck = BrowserCheckBase & {
+  type: "visible";
+  selector: string;
+};
+
+export type TextCheck = BrowserCheckBase & {
+  type: "text";
+  selector: string;
+  match: "equals" | "contains" | "regex";
+  value: string;
+};
+
+export type CountCheck = BrowserCheckBase & {
+  type: "count";
+  selector: string;
+  equals?: number;
+  min?: number;
+  max?: number;
+};
+
+export type AttributeCheck = BrowserCheckBase & {
+  type: "attribute";
+  selector: string;
+  name: string;
+  match: "equals" | "contains" | "regex";
+  value: string;
+};
+
+export type ConsoleCheck = BrowserCheckBase & {
+  type: "console";
+  maxErrors: number;
+};
+
+export type OverflowCheck = BrowserCheckBase & {
+  type: "overflow";
+  axis: "x" | "y";
+  maxPx?: number;
+};
+
+export type BrowserCheck =
+  | StatusCheck
+  | TitleCheck
+  | VisibleCheck
+  | TextCheck
+  | CountCheck
+  | AttributeCheck
+  | ConsoleCheck
+  | OverflowCheck;
