@@ -23,8 +23,9 @@ async function main() {
     if (command === "capture") {
       const contract = parseCaptureContract(input);
       const report = await capture(contract);
-      console.log(`CAPTURED · ${report.scenarios.length} scenario(s)`);
+      console.log(`CAPTURE · ${report.summary.captured} captured · ${report.summary.blocked} blocked`);
       console.log(`Evidence: ${resolve(process.cwd(), contract.evidence?.dir ?? ".youbrowser")}`);
+      if (report.summary.blocked > 0) process.exitCode = 2;
       return;
     }
 
