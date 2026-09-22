@@ -12,7 +12,7 @@ import type {
   Target,
 } from "./model.js";
 import { checkResult, matches, scenarioVerdict } from "./result.js";
-import { redactSecrets } from "./redact.js";
+import { redactSecrets, reportHeader } from "./redact.js";
 
 type HttpTarget = Target & {
   kind: "http";
@@ -273,7 +273,11 @@ export const httpAdapter: Adapter = {
           case "header": {
             const actual = response.headers.get(check.name) ?? "";
             const pass = matches(actual, check.match, check.value);
-            results.push(checkResult(check, pass ? "PASS" : "FAIL", pass ? "header matched" : "header differed", { match: check.match, value: check.value }, actual));
+            results.push(checkResult(
+              check, pass ? "PASS" : "FAIL", pass ? "header matched" : "header differed",
+              { name: check.name, match: check.match, value: reportHeader(check.name, check.value) },
+              reportHeader(check.name, actual),
+            ));
             break;
           }
           case "body": {
