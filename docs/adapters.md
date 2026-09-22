@@ -67,4 +67,9 @@ These are one-run browser navigation timings, not population percentiles,
 Core Web Vitals, or an implemented load/performance adapter.
 
 `command` executes trusted local contracts without a shell, but is not a
-sandbox. See [../SECURITY.md](../SECURITY.md).
+sandbox. Each scenario has `timeoutMs` (default 30 seconds, maximum 10
+minutes) and `maxOutputBytes` (1 MiB default, 64 MiB hard limit across
+stdout and stderr). A spawn error, timeout, or output overrun marks *every
+selected check* BLOCKED, including duration checks; captured output is
+truncated and is not a complete evidence transcript. See
+[../SECURITY.md](../SECURITY.md).
