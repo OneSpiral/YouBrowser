@@ -15,3 +15,4 @@ export type * from "./model.js";
 export { capture } from "./capture.js";
 export { parseCaptureContract, parseContract } from "./schema.js";
 export { verify } from "./verify.js";
+export { inspectReceipt } from "./receipt.js";
