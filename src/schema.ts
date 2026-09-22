@@ -50,8 +50,11 @@ function parseCheck(value: unknown, index: number): CheckSpec {
     if (!Array.isArray(raw.scenarios)) {
       throw new Error(`checks[${index}].scenarios must be an array`);
     }
+    if (raw.scenarios.length === 0) {
+      throw new Error(`checks[${index}].scenarios cannot be empty`);
+    }
     scenarios = raw.scenarios.map((item, itemIndex) =>
-      string(item, `checks[${index}].scenarios[${itemIndex}]`),
+      identifier(item, `checks[${index}].scenarios[${itemIndex}]`),
     );
   }
 
