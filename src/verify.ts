@@ -1,5 +1,7 @@
 import { resolve } from "node:path";
 import { getAdapter } from "./adapter.js";
+import { auditCoverage } from "./coverage.js";
+import { parseContract } from "./schema.js";
 import type {
   AcceptanceContract,
   AcceptanceReport,
@@ -22,25 +24,28 @@ export async function verify(
   contract: AcceptanceContract,
   options: { cwd?: string } = {},
 ): Promise<AcceptanceReport> {
+  const validated = parseContract(contract);
   const cwd = options.cwd ?? process.cwd();
-  const evidenceDir = resolve(cwd, contract.evidence?.dir ?? ".youbrowser");
+  const evidenceDir = resolve(cwd, validated.evidence?.dir ?? ".youbrowser");
   const startedAt = new Date().toISOString();
-  const adapter = getAdapter(contract.target.kind);
-  const scenarios = await adapter.run(contract, { cwd, evidenceDir });
+  const adapter = getAdapter(validated.target.kind);
+  const scenarios = await adapter.run(validated, { cwd, evidenceDir });
+  const coverage = auditCoverage(validated, scenarios);
   const results = scenarios.flatMap((scenario) => scenario.checks);
   const finishedAt = new Date().toISOString();
 
   const report: AcceptanceReport = {
     version: 1,
-    target: reportTarget(contract.target),
-    verdict: overall(results),
+    target: reportTarget(validated.target),
+    verdict: !coverage.complete && overall(results) !== "FAIL" ? "BLOCKED" : overall(results),
+    coverage,
     startedAt,
     finishedAt,
     scenarios,
     summary: {
       pass: results.filter((result) => result.verdict === "PASS").length,
       fail: results.filter((result) => result.verdict === "FAIL").length,
-      blocked: results.filter((result) => result.verdict === "BLOCKED").length,
+      blocked: results.filter((result) => result.verdict === "BLOCKED").length + coverage.problems.length,
       skipped: results.filter((result) => result.verdict === "SKIPPED").length,
       warnings: results.filter(
         (result) => result.severity === "should" && result.verdict !== "PASS" && result.verdict !== "SKIPPED",
@@ -49,6 +54,6 @@ export async function verify(
   };
 
   const written = await writeReport(report, evidenceDir);
-  await writeReceipt(contract, report, written.jsonText, evidenceDir, cwd);
+  await writeReceipt(validated, report, written.jsonText, evidenceDir, cwd);
   return report;
 }
