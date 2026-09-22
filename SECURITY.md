@@ -9,6 +9,10 @@ code before running it.
 - `command` launches the declared executable without a shell. This prevents
   accidental shell interpretation, **not** arbitrary code execution. Its
   arguments, working directory and environment are controlled by the contract.
+  Stdout/stderr have a combined byte cap (1 MiB default, at most 64 MiB) and
+  scenarios have bounded timeouts (30 seconds default, at most 10 minutes).
+  Over-budget execution is BLOCKED; killing the direct child does not
+  guarantee termination of every subprocess it may have spawned.
 - `http` and `web` can access addresses reachable from the runner. Do not
   accept untrusted URLs: this release does not promise SSRF isolation,
   private-network filtering or sandboxed browser execution.
