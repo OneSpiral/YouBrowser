@@ -137,6 +137,28 @@ export async function evaluateCheck(
           },
         );
       }
+      case "navigation": {
+        const observed = await page.evaluate((metric) => {
+          const navigation = performance.getEntriesByType("navigation")[0] as
+            | PerformanceNavigationTiming
+            | undefined;
+          if (!navigation) return null;
+          return metric === "ttfb"
+            ? navigation.responseStart
+            : navigation.domContentLoadedEventEnd;
+        }, check.metric);
+        if (observed === null || !Number.isFinite(observed) || observed <= 0) {
+          return result(check, "BLOCKED", "navigation timing unavailable", { metric: check.metric, maxMs: check.maxMs }, observed);
+        }
+        const pass = observed <= check.maxMs;
+        return result(
+          check,
+          pass ? "PASS" : "FAIL",
+          pass ? "navigation timing within budget" : "navigation timing exceeded budget",
+          { metric: check.metric, maxMs: check.maxMs },
+          observed,
+        );
+      }
       case "overflow": {
         const observed = await page.evaluate((axis) => {
           const root = document.documentElement;
