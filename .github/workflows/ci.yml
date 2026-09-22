@@ -37,3 +37,7 @@ jobs:
           bun run src/cli.ts verify tests/fixtures/http.json
           bun run src/cli.ts verify tests/fixtures/file.json
           bun run src/cli.ts verify tests/fixtures/command.json
+          test -f .youbrowser/receipt.json
+          bun run src/cli.ts capture tests/fixtures/capture.json
+          test -f .youbrowser-capture/capture.json
+          test -f .youbrowser-capture/dataset.body.txt
