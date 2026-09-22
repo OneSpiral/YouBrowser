@@ -30,6 +30,8 @@ export async function writeReport(
     `- BLOCKED: ${report.summary.blocked}`,
     `- SKIPPED: ${report.summary.skipped}`,
     `- SHOULD warnings: ${report.summary.warnings}`,
+    `- Coverage complete: ${report.coverage.complete}`,
+    ...report.coverage.problems.map((problem) => `- COVERAGE BLOCKED: ${problem}`),
     "",
     ...report.scenarios.flatMap((scenario) => [
       `## ${scenario.id} — ${scenario.verdict}`,
