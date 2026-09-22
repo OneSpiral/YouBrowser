@@ -126,7 +126,12 @@ function parseCheck(value: CheckSpec, index: number): JsonCheck {
       if (!["array", "object", "string", "number", "boolean", "null"].includes(equals)) {
         throw new Error(`checks[${index}].equals is not a JSON type`);
       }
-      return { ...common, type: "type", path, equals: equals as JsonCheck & never };
+      return {
+        ...common,
+        type: "type",
+        path,
+        equals: equals as "array" | "object" | "string" | "number" | "boolean" | "null",
+      };
     }
     case "count": {
       if (raw.equals === undefined && raw.min === undefined && raw.max === undefined) {
