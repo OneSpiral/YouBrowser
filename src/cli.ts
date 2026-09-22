@@ -2,24 +2,38 @@
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import "./index.js";
-import { parseContract } from "./schema.js";
+import { capture } from "./capture.js";
+import { parseCaptureContract, parseContract } from "./schema.js";
 import { verify } from "./verify.js";
+
+function usage(): never {
+  console.error("Usage: youbrowser <verify|capture> <contract.json>");
+  process.exit(64);
+}
 
 async function main() {
   const [command, contractPath] = process.argv.slice(2);
-
-  if (command !== "verify" || !contractPath) {
-    console.error("Usage: youbrowser verify <contract.json>");
-    process.exit(64);
-  }
+  if (!contractPath || (command !== "verify" && command !== "capture")) usage();
 
   try {
     const absolute = resolve(process.cwd(), contractPath);
     const source = await readFile(absolute, "utf8");
-    const contract = parseContract(JSON.parse(source));
+    const input = JSON.parse(source);
+
+    if (command === "capture") {
+      const contract = parseCaptureContract(input);
+      const report = await capture(contract);
+      console.log(`CAPTURED · ${report.scenarios.length} scenario(s)`);
+      console.log(`Evidence: ${resolve(process.cwd(), contract.evidence?.dir ?? ".youbrowser")}`);
+      return;
+    }
+
+    const contract = parseContract(input);
     const report = await verify(contract);
 
-    console.log(`${report.verdict} · ${report.summary.pass} pass · ${report.summary.fail} fail · ${report.summary.blocked} blocked · ${report.summary.warnings} warning(s)`);
+    console.log(
+      `${report.verdict} · ${report.summary.pass} pass · ${report.summary.fail} fail · ${report.summary.blocked} blocked · ${report.summary.warnings} warning(s)`,
+    );
     console.log(`Evidence: ${resolve(process.cwd(), contract.evidence?.dir ?? ".youbrowser")}`);
 
     if (report.verdict === "FAIL") process.exit(1);
