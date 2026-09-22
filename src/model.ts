@@ -106,6 +106,7 @@ export type AcceptanceReport = {
   version: 1;
   target: Target;
   verdict: Verdict;
+  coverage: { complete: boolean; problems: string[] };
   startedAt: string;
   finishedAt: string;
   scenarios: ScenarioReport[];
