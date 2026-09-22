@@ -4,16 +4,17 @@ import { resolve } from "node:path";
 import "./index.js";
 import { capture } from "./capture.js";
 import { parseCaptureContract, parseContract } from "./schema.js";
+import { inspectReceipt } from "./receipt.js";
 import { verify } from "./verify.js";
 
 function usage(): never {
-  console.error("Usage: youbrowser <verify|capture> <contract.json>");
+  console.error("Usage: youbrowser <verify|capture|receipt> <contract.json>");
   process.exit(64);
 }
 
 async function main() {
   const [command, contractPath] = process.argv.slice(2);
-  if (!contractPath || (command !== "verify" && command !== "capture")) usage();
+  if (!contractPath || (command !== "verify" && command !== "capture" && command !== "receipt")) usage();
 
   try {
     const absolute = resolve(process.cwd(), contractPath);
@@ -30,6 +31,13 @@ async function main() {
     }
 
     const contract = parseContract(input);
+    if (command === "receipt") {
+      const evidenceDir = resolve(process.cwd(), contract.evidence?.dir ?? ".youbrowser");
+      const inspection = await inspectReceipt(contract, evidenceDir, process.cwd());
+      console.log(inspection.valid ? "RECEIPT VALID" : `RECEIPT INVALID · ${inspection.problems.join("; ")}`);
+      if (!inspection.valid) process.exitCode = 2;
+      return;
+    }
     const report = await verify(contract);
 
     console.log(
