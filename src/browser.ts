@@ -84,7 +84,7 @@ export const browserAdapter: Adapter = {
           scenarioBlocked = error instanceof Error ? error.message : String(error);
         }
 
-        let checks = [];
+        let checks: ScenarioReport["checks"] = [];
         if (scenarioBlocked) {
           checks = contract.checks.map((check) => ({
             id: check.id,
