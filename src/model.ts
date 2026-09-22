@@ -68,8 +68,10 @@ export type CaptureReport = {
   target: Target;
   startedAt: string;
   finishedAt: string;
+  summary: { captured: number; blocked: number };
   scenarios: Array<{
     id: string;
+    state: "CAPTURED" | "BLOCKED";
     evidence: ScenarioEvidence;
   }>;
 };
