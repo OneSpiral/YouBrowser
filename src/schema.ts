@@ -1,5 +1,6 @@
 import type {
   AcceptanceContract,
+  CaptureContract,
   CheckSpec,
   EvidenceConfig,
   ScenarioSpec,
@@ -55,7 +56,12 @@ function parseCheck(value: unknown, index: number): CheckSpec {
   };
 }
 
-export function parseContract(value: unknown): AcceptanceContract {
+function parseBase(value: unknown): {
+  raw: Record<string, unknown>;
+  target: Target;
+  scenarios: ScenarioSpec[];
+  evidence?: EvidenceConfig;
+} {
   const raw = object(value, "contract");
   if (raw.version !== 1) throw new Error("contract.version must be 1");
 
@@ -68,10 +74,6 @@ export function parseContract(value: unknown): AcceptanceContract {
   if (!Array.isArray(raw.scenarios) || raw.scenarios.length === 0) {
     throw new Error("contract.scenarios must contain at least one scenario");
   }
-  if (!Array.isArray(raw.checks) || raw.checks.length === 0) {
-    throw new Error("contract.checks must contain at least one check");
-  }
-
   const scenarios = raw.scenarios.map(parseScenario);
   const scenarioIds = new Set<string>();
   for (const scenario of scenarios) {
@@ -79,7 +81,32 @@ export function parseContract(value: unknown): AcceptanceContract {
     scenarioIds.add(scenario.id);
   }
 
-  const checks = raw.checks.map(parseCheck);
+  let evidence: EvidenceConfig | undefined;
+  if (raw.evidence !== undefined) {
+    const evidenceRaw = object(raw.evidence, "evidence");
+    evidence = { ...evidenceRaw };
+    if (evidenceRaw.dir !== undefined) {
+      evidence.dir = string(evidenceRaw.dir, "evidence.dir");
+    }
+  }
+
+  return {
+    raw,
+    target,
+    scenarios,
+    ...(evidence ? { evidence } : {}),
+  };
+}
+
+export function parseContract(value: unknown): AcceptanceContract {
+  const base = parseBase(value);
+  const rawChecks = base.raw.checks;
+  if (!Array.isArray(rawChecks) || rawChecks.length === 0) {
+    throw new Error("contract.checks must contain at least one check");
+  }
+
+  const checks = rawChecks.map(parseCheck);
+  const scenarioIds = new Set(base.scenarios.map((scenario) => scenario.id));
   const checkIds = new Set<string>();
   for (const check of checks) {
     if (checkIds.has(check.id)) throw new Error(`duplicate check id: ${check.id}`);
@@ -95,20 +122,26 @@ export function parseContract(value: unknown): AcceptanceContract {
     throw new Error("verify contracts require at least one must check");
   }
 
-  let evidence: EvidenceConfig | undefined;
-  if (raw.evidence !== undefined) {
-    const evidenceRaw = object(raw.evidence, "evidence");
-    evidence = { ...evidenceRaw };
-    if (evidenceRaw.dir !== undefined) {
-      evidence.dir = string(evidenceRaw.dir, "evidence.dir");
-    }
-  }
-
   return {
     version: 1,
-    target,
-    scenarios,
+    target: base.target,
+    scenarios: base.scenarios,
     checks,
-    ...(evidence ? { evidence } : {}),
+    ...(base.evidence ? { evidence: base.evidence } : {}),
+  };
+}
+
+export function parseCaptureContract(value: unknown): CaptureContract {
+  const base = parseBase(value);
+  if (base.raw.checks !== undefined) {
+    if (!Array.isArray(base.raw.checks) || base.raw.checks.length > 0) {
+      throw new Error("capture contracts do not accept checks; use verify for acceptance criteria");
+    }
+  }
+  return {
+    version: 1,
+    target: base.target,
+    scenarios: base.scenarios,
+    ...(base.evidence ? { evidence: base.evidence } : {}),
   };
 }
