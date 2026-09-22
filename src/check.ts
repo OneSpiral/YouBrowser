@@ -62,11 +62,7 @@ export async function evaluateCheck(
           pass ? "PASS" : "FAIL",
           pass ? "HTTP status matched" : "HTTP status differed",
           check.equals,
-          {
-            total: actual,
-            console: observation.consoleErrors,
-            page: observation.pageErrors,
-          },
+          actual,
         );
       }
       case "title": {
@@ -134,7 +130,11 @@ export async function evaluateCheck(
           pass ? "PASS" : "FAIL",
           pass ? "console error budget satisfied" : "console error budget exceeded",
           { maxErrors: check.maxErrors },
-          actual,
+          {
+            total: actual,
+            console: observation.consoleErrors,
+            page: observation.pageErrors,
+          },
         );
       }
       case "overflow": {
