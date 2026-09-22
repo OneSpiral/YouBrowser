@@ -11,6 +11,7 @@ import type {
   Target,
 } from "./model.js";
 import { checkResult, matches, scenarioVerdict } from "./result.js";
+import { redactSecrets } from "./redact.js";
 
 type HttpTarget = Target & {
   kind: "http";
@@ -284,7 +285,7 @@ export const httpAdapter: Adapter = {
                   response.headers.forEach((value, key) => {
                     values[key] = value;
                   });
-                  return values;
+                  return redactSecrets(values);
                 })(),
               }
             : {}),
