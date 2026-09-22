@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { digestArtifacts } from "./artifact.js";
-import { writeFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import type {
   AcceptanceContract,
@@ -65,4 +65,51 @@ export async function writeReceipt(
     `${JSON.stringify(receipt, null, 2)}\n`,
   );
   return receipt;
+}
+
+/**
+ * Recomputes the local receipt, report and retained-artifact digests.
+ * This detects accidental drift/tampering, but it is not an external signature.
+ */
+export async function inspectReceipt(
+  contract: AcceptanceContract,
+  evidenceDir: string,
+  cwd: string,
+): Promise<{ valid: boolean; problems: string[] }> {
+  const problems: string[] = [];
+  try {
+    const [receiptText, reportText] = await Promise.all([
+      readFile(resolve(evidenceDir, "receipt.json"), "utf8"),
+      readFile(resolve(evidenceDir, "report.json"), "utf8"),
+    ]);
+    const receipt = JSON.parse(receiptText) as AcceptanceReceipt;
+    const report = JSON.parse(reportText) as AcceptanceReport;
+    if (receipt.version !== 1 || receipt.protocol !== 1 || receipt.kind !== "acceptance") {
+      problems.push("unsupported receipt protocol");
+    }
+    if (receipt.contractSha256 !== sha256(canonicalJson(contract))) {
+      problems.push("contract hash differs");
+    }
+    if (receipt.reportSha256 !== sha256(reportText)) {
+      problems.push("report bytes differ");
+    }
+    const { receiptSha256, ...unsigned } = receipt;
+    if (receiptSha256 !== sha256(canonicalJson(unsigned))) {
+      problems.push("receipt hash differs");
+    }
+    if (receipt.targetKind !== report.target.kind || receipt.verdict !== report.verdict) {
+      problems.push("receipt and report disagree");
+    }
+    try {
+      const actual = await digestArtifacts(report.scenarios, evidenceDir, cwd);
+      if (canonicalJson(actual) !== canonicalJson(receipt.artifacts)) {
+        problems.push("retained artifact bytes differ");
+      }
+    } catch (error) {
+      problems.push(`retained artifact unavailable: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  } catch (error) {
+    problems.push(`receipt or report unavailable: ${error instanceof Error ? error.message : String(error)}`);
+  }
+  return { valid: problems.length === 0, problems };
 }
