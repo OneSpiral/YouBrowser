@@ -66,6 +66,20 @@
       "axis": "x",
       "maxPx": 0,
       "severity": "must"
+    },
+    {
+      "id": "ttfb",
+      "type": "navigation",
+      "metric": "ttfb",
+      "maxMs": 60000,
+      "severity": "must"
+    },
+    {
+      "id": "dom-content-loaded",
+      "type": "navigation",
+      "metric": "domContentLoaded",
+      "maxMs": 60000,
+      "severity": "must"
     }
   ],
   "evidence": {
