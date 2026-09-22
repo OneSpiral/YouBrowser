@@ -34,10 +34,23 @@ jobs:
             sleep 0.2
           done
           bun run src/cli.ts verify tests/fixtures/web.json
+          bun run src/cli.ts receipt tests/fixtures/web.json
+          printf 'tampered' >> .youbrowser/desktop.png
+          if bun run src/cli.ts receipt tests/fixtures/web.json; then
+            echo 'receipt inspection accepted modified screenshot' >&2
+            exit 1
+          fi
           bun run src/cli.ts verify tests/fixtures/http.json
+          bun run src/cli.ts receipt tests/fixtures/http.json
           bun run src/cli.ts verify tests/fixtures/file.json
+          bun run src/cli.ts receipt tests/fixtures/file.json
           bun run src/cli.ts verify tests/fixtures/command.json
+          bun run src/cli.ts receipt tests/fixtures/command.json
           test -f .youbrowser/receipt.json
           bun run src/cli.ts capture tests/fixtures/capture.json
           test -f .youbrowser-capture/capture.json
           test -f .youbrowser-capture/dataset.body.txt
+          if bun run src/cli.ts capture tests/fixtures/capture-missing.json; then
+            echo 'missing capture returned success' >&2
+            exit 1
+          fi
