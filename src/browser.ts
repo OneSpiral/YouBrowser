@@ -77,7 +77,10 @@ export const browserAdapter: Adapter = {
 
           if (browserContract.evidence?.screenshots !== false) {
             screenshot = resolve(context.evidenceDir, `${scenario.id}.png`);
-            await page.screenshot({ path: screenshot, fullPage: true });
+            await page.screenshot({
+              path: screenshot,
+              fullPage: browserContract.evidence?.fullPage ?? true,
+            });
           }
         } catch (error) {
           scenarioBlocked = error instanceof Error ? error.message : String(error);
