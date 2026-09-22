@@ -32,9 +32,12 @@ There is no universal quality score.
 
 ## Current status
 
-v0.1 establishes the protocol and ships the first adapter:
+v0.1 establishes the protocol and ships four adapters:
 
-- `web` target via Playwright/Chromium
+- `web` — real-browser verification via Playwright/Chromium
+- `http` — API/data-source verification with status/header/body/JSON/latency checks
+- `file` — artifact verification with existence/size/text/JSON checks and SHA-256 evidence
+- `command` — shell-free process verification with exit/stdout/stderr/duration checks
 - desktop/mobile or arbitrary viewport scenarios
 - light/dark colour scheme
 - reduced-motion scenarios
@@ -152,18 +155,21 @@ YouBrowser has two extension axes.
 ### Adapters — how to observe
 
 ```text
-web      → browser/DOM/network/runtime evidence
-http     → request/response evidence
-file     → filesystem/content evidence
-json     → schema/value evidence
-image    → geometry/perceptual evidence
-command  → process/output evidence
-repo     → source/build/test evidence
-research → citation/data/method evidence
-content  → structure/claim/style evidence
+web      → browser/DOM/network/runtime evidence       [implemented]
+http     → request/response evidence                  [implemented]
+file     → filesystem/content/hash evidence           [implemented]
+command  → process/output evidence                    [implemented]
+json     → schema/value evidence                      [planned]
+image    → geometry/perceptual evidence               [planned]
+repo     → source/build/test evidence                 [planned]
+crawl    → multi-resource collection evidence         [planned]
+perf     → single-target performance evidence         [planned]
+load     → concurrent/load evidence                   [planned]
+research → citation/data/method evidence              [planned]
+content  → structure/claim/style evidence             [planned]
 ```
 
-Only `web` is implemented today. The others are protocol directions, not claimed capabilities.
+`web`, `http`, `file`, and `command` are implemented today. `json`, `image`, `repo`, `research`, `content`, `crawl`, `perf`, and `load` remain protocol directions until they satisfy the adapter promotion rule.
 
 ### Judges — how to decide
 
