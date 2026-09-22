@@ -24,6 +24,7 @@ type CommandScenario = ScenarioSpec & {
   cwd?: string;
   env?: Record<string, string>;
   timeoutMs?: number;
+  maxOutputBytes?: number;
 };
 
 type CommandCheck =
@@ -69,12 +70,23 @@ function target(contract: AcceptanceContract): CommandTarget {
 }
 function scenario(value: ScenarioSpec, index: number): CommandScenario {
   const raw = value as Record<string, unknown>;
+  const timeoutMs = raw.timeoutMs === undefined ? 30_000 : finite(raw.timeoutMs, `scenarios[${index}].timeoutMs`);
+  const maxOutputBytes = raw.maxOutputBytes === undefined
+    ? DEFAULT_MAX_OUTPUT_BYTES
+    : finite(raw.maxOutputBytes, `scenarios[${index}].maxOutputBytes`);
+  if (!Number.isInteger(timeoutMs) || timeoutMs < 1 || timeoutMs > 600_000) {
+    throw new Error(`scenarios[${index}].timeoutMs must be 1..600000`);
+  }
+  if (!Number.isInteger(maxOutputBytes) || maxOutputBytes < 1 || maxOutputBytes > HARD_MAX_OUTPUT_BYTES) {
+    throw new Error(`scenarios[${index}].maxOutputBytes must be 1..${HARD_MAX_OUTPUT_BYTES}`);
+  }
   return {
     id: value.id,
     ...(raw.args === undefined ? {} : { args: strings(raw.args, `scenarios[${index}].args`) }),
     ...(raw.cwd === undefined ? {} : { cwd: text(raw.cwd, `scenarios[${index}].cwd`) }),
     ...(raw.env === undefined ? {} : { env: env(raw.env, `scenarios[${index}].env`) }),
-    ...(raw.timeoutMs === undefined ? {} : { timeoutMs: finite(raw.timeoutMs, `scenarios[${index}].timeoutMs`) }),
+    timeoutMs,
+    maxOutputBytes,
   };
 }
 function check(value: CheckSpec, index: number): CommandCheck {
@@ -90,26 +102,77 @@ function check(value: CheckSpec, index: number): CommandCheck {
   throw new Error(`command adapter does not support check type: ${value.type}`);
 }
 
-function run(executable: string, args: string[], options: { cwd: string; env: NodeJS.ProcessEnv; timeoutMs: number }): Promise<{ code: number | null; signal: NodeJS.Signals | null; stdout: string; stderr: string; durationMs: number; error?: string }> {
+const DEFAULT_MAX_OUTPUT_BYTES = 1024 * 1024;
+const HARD_MAX_OUTPUT_BYTES = 64 * 1024 * 1024;
+
+function run(
+  executable: string,
+  args: string[],
+  options: {
+    cwd: string;
+    env: NodeJS.ProcessEnv;
+    timeoutMs: number;
+    maxOutputBytes: number;
+  },
+): Promise<{
+  code: number | null;
+  signal: NodeJS.Signals | null;
+  stdout: string;
+  stderr: string;
+  outputBytes: number;
+  durationMs: number;
+  error?: string;
+}> {
   return new Promise((resolveRun) => {
     const started = performance.now();
-    const child = spawn(executable, args, { cwd: options.cwd, env: options.env, shell: false, stdio: ["ignore", "pipe", "pipe"] });
+    const child = spawn(executable, args, {
+      cwd: options.cwd,
+      env: options.env,
+      shell: false,
+      stdio: ["ignore", "pipe", "pipe"],
+    });
     let stdout = "";
     let stderr = "";
+    let outputBytes = 0;
+    let failure: string | null = null;
     let settled = false;
+    let timer: NodeJS.Timeout | undefined;
+
     const finish = (value: { code: number | null; signal: NodeJS.Signals | null; error?: string }) => {
       if (settled) return;
       settled = true;
-      clearTimeout(timer);
-      resolveRun({ ...value, stdout, stderr, durationMs: performance.now() - started });
+      if (timer) clearTimeout(timer);
+      resolveRun({
+        ...value,
+        stdout,
+        stderr,
+        outputBytes,
+        durationMs: performance.now() - started,
+      });
     };
-    child.stdout.on("data", (chunk) => { stdout += String(chunk); });
-    child.stderr.on("data", (chunk) => { stderr += String(chunk); });
+    const append = (chunk: Buffer, stream: "stdout" | "stderr") => {
+      if (settled) return;
+      const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+      const remaining = Math.max(0, options.maxOutputBytes - outputBytes);
+      const part = buffer.subarray(0, remaining).toString("utf8");
+      if (stream === "stdout") stdout += part;
+      else stderr += part;
+      outputBytes += buffer.byteLength;
+      if (outputBytes > options.maxOutputBytes && !failure) {
+        failure = `process output exceeded maxOutputBytes=${options.maxOutputBytes}`;
+        child.kill("SIGKILL");
+      }
+    };
+    child.stdout.on("data", (chunk: Buffer) => append(chunk, "stdout"));
+    child.stderr.on("data", (chunk: Buffer) => append(chunk, "stderr"));
     child.on("error", (error) => finish({ code: null, signal: null, error: error.message }));
-    child.on("close", (code, signal) => finish({ code, signal }));
-    const timer = setTimeout(() => {
-      child.kill("SIGTERM");
-      finish({ code: null, signal: "SIGTERM", error: `timeout after ${options.timeoutMs}ms` });
+    child.on("close", (code, signal) =>
+      finish({ code, signal, ...(failure ? { error: failure } : {}) }));
+    timer = setTimeout(() => {
+      if (!failure) failure = `timeout after ${options.timeoutMs}ms`;
+      if (!child.kill("SIGKILL")) {
+        finish({ code: null, signal: null, error: failure });
+      }
     }, options.timeoutMs);
   });
 }
@@ -130,6 +193,7 @@ export const commandAdapter: Adapter = {
           cwd: item.cwd ?? base.cwd ?? context.cwd,
           env: { ...process.env, ...base.env, ...item.env },
           timeoutMs: item.timeoutMs ?? 30_000,
+          maxOutputBytes: item.maxOutputBytes ?? DEFAULT_MAX_OUTPUT_BYTES,
         },
       );
       const results: CheckResult[] = [];
@@ -138,7 +202,7 @@ export const commandAdapter: Adapter = {
           results.push(checkResult(criterion, "SKIPPED", `not selected for scenario ${item.id}`));
           continue;
         }
-        if (execution.error && execution.code === null && criterion.type !== "duration") {
+        if (execution.error) {
           results.push(checkResult(criterion, "BLOCKED", execution.error));
           continue;
         }
@@ -165,6 +229,8 @@ export const commandAdapter: Adapter = {
           durationMs: execution.durationMs,
           stdoutBytes: Buffer.byteLength(execution.stdout),
           stderrBytes: Buffer.byteLength(execution.stderr),
+          outputBytes: execution.outputBytes,
+          maxOutputBytes: item.maxOutputBytes ?? DEFAULT_MAX_OUTPUT_BYTES,
           ...(execution.error ? { error: execution.error } : {}),
         },
         checks: results,
