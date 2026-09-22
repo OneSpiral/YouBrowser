@@ -186,6 +186,12 @@ export type AttributeCheck = BrowserCheckBase & {
   value: string;
 };
 
+export type NavigationCheck = BrowserCheckBase & {
+  type: "navigation";
+  metric: "ttfb" | "domContentLoaded";
+  maxMs: number;
+};
+
 export type ConsoleCheck = BrowserCheckBase & {
   type: "console";
   maxErrors: number;
@@ -205,4 +211,5 @@ export type BrowserCheck =
   | CountCheck
   | AttributeCheck
   | ConsoleCheck
-  | OverflowCheck;
+  | OverflowCheck
+  | NavigationCheck;
