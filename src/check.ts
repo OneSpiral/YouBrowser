@@ -2,7 +2,7 @@ import type { Page } from "playwright";
 import type {
   BrowserCheck,
   CheckResult,
-  Scenario,
+  BrowserScenario,
   Severity,
   Verdict,
 } from "./model.js";
@@ -44,7 +44,7 @@ function matches(actual: string, mode: "equals" | "contains" | "regex", expected
 
 export async function evaluateCheck(
   page: Page,
-  scenario: Scenario,
+  scenario: BrowserScenario,
   check: BrowserCheck,
   observation: Observation,
 ): Promise<CheckResult> {
