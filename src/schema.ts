@@ -171,7 +171,9 @@ export function parseContract(value: unknown): AcceptanceContract {
   if (!Array.isArray(raw.scenarios) || raw.scenarios.length === 0) {
     throw new Error("contract.scenarios must contain at least one scenario");
   }
-  if (!Array.isArray(raw.checks)) throw new Error("contract.checks must be an array");
+  if (!Array.isArray(raw.checks) || raw.checks.length === 0) {
+    throw new Error("contract.checks must contain at least one check");
+  }
 
   const scenarios = raw.scenarios.map(parseScenario);
   const ids = new Set<string>();
@@ -190,6 +192,10 @@ export function parseContract(value: unknown): AcceptanceContract {
         throw new Error(`check ${check.id} references unknown scenario: ${scenarioId}`);
       }
     }
+  }
+
+  if (!checks.some((check) => (check.severity ?? "must") === "must")) {
+    throw new Error("verify contracts require at least one must check");
   }
 
   let evidence: AcceptanceContract["evidence"];
