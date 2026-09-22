@@ -63,12 +63,19 @@ export type ScenarioReport = {
   checks: CheckResult[];
 };
 
+export type ArtifactDigest = {
+  path: string;
+  bytes: number;
+  sha256: string;
+};
+
 export type CaptureReport = {
   version: 1;
   target: Target;
   startedAt: string;
   finishedAt: string;
   summary: { captured: number; blocked: number };
+  artifacts: ArtifactDigest[];
   scenarios: Array<{
     id: string;
     state: "CAPTURED" | "BLOCKED";
@@ -84,6 +91,7 @@ export type AcceptanceReceipt = {
   verdict: Verdict;
   contractSha256: string;
   reportSha256: string;
+  artifacts: ArtifactDigest[];
   startedAt: string;
   finishedAt: string;
   summary: AcceptanceReport["summary"];
