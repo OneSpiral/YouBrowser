@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
 import { relative, resolve } from "node:path";
+import { setTimeout as sleep } from "node:timers/promises";
 import type { Adapter, RunContext } from "./adapter.js";
 import type {
   AcceptanceContract,
@@ -14,10 +15,18 @@ import type {
 import { checkResult, matches, scenarioVerdict } from "./result.js";
 import { redactSecrets, reportHeader } from "./redact.js";
 
+type HttpScope = {
+  origins: string[];
+  maxRequests: number;
+  maxTotalBytes: number;
+  minDelayMs: number;
+};
+
 type HttpTarget = Target & {
   kind: "http";
   baseUrl: string;
   headers?: Record<string, string>;
+  scope: HttpScope;
 };
 
 type HttpScenario = ScenarioSpec & {
@@ -69,15 +78,61 @@ function number(value: unknown, path: string): number {
   return value;
 }
 
+const HARD_MAX_REQUESTS = 500;
+const HARD_MAX_TOTAL_BYTES = 256 * 1024 * 1024;
+
 function parseTarget(contract: AcceptanceContract): HttpTarget {
   if (contract.target.kind !== "http") throw new Error("http adapter requires target.kind=http");
+  const baseUrl = new URL(nonEmpty(contract.target.baseUrl, "target.baseUrl"));
+  if (!["http:", "https:"].includes(baseUrl.protocol) || baseUrl.username || baseUrl.password) {
+    throw new Error("target.baseUrl must be HTTP(S), without URL-embedded credentials");
+  }
+  if (baseUrl.hash) throw new Error("target.baseUrl cannot contain a fragment");
+
+  const rawScope = contract.target.scope;
+  if (rawScope !== undefined && (!rawScope || typeof rawScope !== "object" || Array.isArray(rawScope))) {
+    throw new Error("target.scope must be an object");
+  }
+  const scope = (rawScope ?? {}) as Record<string, unknown>;
+  const maxRequests = scope.maxRequests === undefined ? 50 : number(scope.maxRequests, "target.scope.maxRequests");
+  const maxTotalBytes = scope.maxTotalBytes === undefined ? 64 * 1024 * 1024 : number(scope.maxTotalBytes, "target.scope.maxTotalBytes");
+  const minDelayMs = scope.minDelayMs === undefined ? 0 : number(scope.minDelayMs, "target.scope.minDelayMs");
+  if (!Number.isInteger(maxRequests) || maxRequests < 1 || maxRequests > HARD_MAX_REQUESTS) {
+    throw new Error(`target.scope.maxRequests must be 1..${HARD_MAX_REQUESTS}`);
+  }
+  if (!Number.isInteger(maxTotalBytes) || maxTotalBytes < 1 || maxTotalBytes > HARD_MAX_TOTAL_BYTES) {
+    throw new Error(`target.scope.maxTotalBytes must be 1..${HARD_MAX_TOTAL_BYTES}`);
+  }
+  if (!Number.isInteger(minDelayMs) || minDelayMs < 0 || minDelayMs > 60_000) {
+    throw new Error("target.scope.minDelayMs must be 0..60000");
+  }
+
+  const requestedOrigins = scope.origins === undefined ? [baseUrl.origin] : scope.origins;
+  if (!Array.isArray(requestedOrigins) || requestedOrigins.length < 1 || requestedOrigins.length > 16) {
+    throw new Error("target.scope.origins must contain 1..16 origins");
+  }
+  const origins = requestedOrigins.map((value, index) => {
+    const url = new URL(nonEmpty(value, `target.scope.origins[${index}]`));
+    if (!["http:", "https:"].includes(url.protocol) || url.username || url.password ||
+        url.pathname !== "/" || url.search || url.hash) {
+      throw new Error(`target.scope.origins[${index}] must be a bare HTTP(S) origin`);
+    }
+    return url.origin;
+  });
+  if (!origins.includes(baseUrl.origin)) {
+    throw new Error("target.scope.origins must include target.baseUrl origin");
+  }
+  if (contract.scenarios.length > maxRequests) {
+    throw new Error(`contract has ${contract.scenarios.length} requests but target.scope.maxRequests=${maxRequests}`);
+  }
   return {
     ...contract.target,
     kind: "http",
-    baseUrl: nonEmpty(contract.target.baseUrl, "target.baseUrl"),
+    baseUrl: baseUrl.toString(),
     ...(contract.target.headers === undefined
       ? {}
       : { headers: headers(contract.target.headers, "target.headers") }),
+    scope: { origins: [...new Set(origins)], maxRequests, maxTotalBytes, minDelayMs },
   };
 }
 
@@ -207,17 +262,42 @@ export const httpAdapter: Adapter = {
     await mkdir(context.evidenceDir, { recursive: true });
 
     const reports: ScenarioReport[] = [];
+    let totalBytes = 0;
+    let lastStarted = 0;
     for (const scenario of scenarios) {
+      if (lastStarted !== 0 && target.scope.minDelayMs > 0) {
+        const remainingDelay = target.scope.minDelayMs - (performance.now() - lastStarted);
+        if (remainingDelay > 0) await sleep(remainingDelay);
+      }
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), scenario.timeoutMs ?? 30_000);
-      const url = new URL(scenario.path ?? "/", target.baseUrl).toString();
+      let url = target.baseUrl;
+      let scopeError: string | null = null;
+      try {
+        const address = new URL(scenario.path ?? "/", target.baseUrl);
+        if (!["http:", "https:"].includes(address.protocol) || address.username || address.password) {
+          throw new Error("HTTP scenario URL must be HTTP(S) without URL credentials");
+        }
+        if (!target.scope.origins.includes(address.origin)) {
+          throw new Error(`HTTP scenario origin is outside scope: ${address.origin}`);
+        }
+        address.hash = "";
+        url = address.toString();
+      } catch (error) {
+        scopeError = error instanceof Error ? error.message : String(error);
+      }
       const started = performance.now();
+      lastStarted = started;
       let response: Response | null = null;
       let body: Buffer<ArrayBufferLike> = Buffer.alloc(0);
       let text = "";
-      let blocked: string | null = null;
-
+      let blocked: string | null = scopeError;
+      const remainingBytes = target.scope.maxTotalBytes - totalBytes;
+      if (!blocked && remainingBytes <= 0) {
+        blocked = "HTTP collection total byte budget exhausted";
+      }
       try {
+        if (blocked) throw new Error(blocked);
         const requestHeaders = {
           ...(scenario.json !== undefined ? { "content-type": "application/json" } : {}),
           ...target.headers,
@@ -232,8 +312,13 @@ export const httpAdapter: Adapter = {
               ? { body: scenario.body }
               : {}),
           signal: controller.signal,
+          redirect: "manual",
         });
-        body = await readBounded(response, scenario.maxBytes ?? DEFAULT_MAX_BYTES);
+        body = await readBounded(
+          response,
+          Math.min(scenario.maxBytes ?? DEFAULT_MAX_BYTES, remainingBytes),
+        );
+        totalBytes += body.byteLength;
         text = body.toString("utf8");
       } catch (error) {
         blocked = error instanceof Error ? error.message : String(error);
@@ -342,6 +427,9 @@ export const httpAdapter: Adapter = {
           bodyBytes: body.byteLength,
           ...(blocked ? {} : { bodySha256: createHash("sha256").update(body).digest("hex") }),
           maxBytes: scenario.maxBytes,
+          totalBytes,
+          maxTotalBytes: target.scope.maxTotalBytes,
+          redirectPolicy: "manual",
           ...(bodyArtifact ? { artifacts: [bodyArtifact] } : {}),
           ...(blocked ? { error: blocked } : {}),
         },
