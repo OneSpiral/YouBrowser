@@ -22,11 +22,19 @@ function string(value: unknown, path: string): string {
   return value;
 }
 
+function identifier(value: unknown, path: string): string {
+  const id = string(value, path);
+  if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$/.test(id)) {
+    throw new Error(`${path} must be a safe identifier (1–80 ASCII letters, digits, dots, underscores or hyphens; start with a letter or digit)`);
+  }
+  return id;
+}
+
 function parseScenario(value: unknown, index: number): ScenarioSpec {
   const raw = object(value, `scenarios[${index}]`);
   return {
     ...raw,
-    id: string(raw.id, `scenarios[${index}].id`),
+    id: identifier(raw.id, `scenarios[${index}].id`),
   };
 }
 
@@ -49,7 +57,7 @@ function parseCheck(value: unknown, index: number): CheckSpec {
 
   return {
     ...raw,
-    id: string(raw.id, `checks[${index}].id`),
+    id: identifier(raw.id, `checks[${index}].id`),
     type: string(raw.type, `checks[${index}].type`),
     severity: severity as Severity,
     ...(scenarios ? { scenarios } : {}),
