@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join, relative } from "node:path";
 import "../src/index.js";
 import { capture } from "../src/capture.js";
+import { reportTarget, redactSecrets } from "../src/redact.js";
 import { parseCaptureContract } from "../src/schema.js";
 import { writeReport } from "../src/report.js";
 import { inspectReceipt, writeReceipt } from "../src/receipt.js";
@@ -98,5 +99,26 @@ describe("acceptance receipt", () => {
     const written = await writeReport(report, evidenceDir);
     await expect(writeReceipt(contract, report, written.jsonText, evidenceDir, cwd))
       .rejects.toThrow("escapes evidence directory");
+  });
+});
+
+describe("persisted evidence privacy", () => {
+  test("redacts credentials without mutating the execution contract", () => {
+    const target = {
+      kind: "http",
+      baseUrl: "https://example.com",
+      headers: { Authorization: "Bearer private", "x-api-key": "secret-key", accept: "application/json" },
+      env: { PRIVATE_TOKEN: "hidden", APP_MODE: "test" },
+    };
+    const result = reportTarget(target);
+    expect(result.headers).toEqual({
+      Authorization: "[REDACTED]",
+      "x-api-key": "[REDACTED]",
+      accept: "application/json",
+    });
+    expect(result.env).toEqual({ PRIVATE_TOKEN: "[REDACTED]", APP_MODE: "test" });
+    expect(target.headers.Authorization).toBe("Bearer private");
+    expect(redactSecrets({ "set-cookie": "session=abc", status: 200 }))
+      .toEqual({ "set-cookie": "[REDACTED]", status: 200 });
   });
 });
