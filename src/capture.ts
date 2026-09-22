@@ -35,6 +35,7 @@ export async function capture(
       | "CAPTURED",
     evidence: scenario.evidence,
   }));
+  await mkdir(evidenceDir, { recursive: true });
   const artifacts = await digestArtifacts(scenarios, evidenceDir, cwd);
   const report: CaptureReport = {
     version: 1,
@@ -49,7 +50,6 @@ export async function capture(
     scenarios,
   };
 
-  await mkdir(evidenceDir, { recursive: true });
   await writeFile(
     resolve(evidenceDir, "capture.json"),
     `${JSON.stringify(report, null, 2)}\n`,
