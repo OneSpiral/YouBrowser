@@ -36,6 +36,6 @@ export function scenarioVerdict(checks: CheckResult[]): Verdict {
   const must = checks.filter((check) => check.severity === "must");
   if (must.some((check) => check.verdict === "FAIL")) return "FAIL";
   if (must.some((check) => check.verdict === "BLOCKED")) return "BLOCKED";
-  if (must.length > 0 && must.every((check) => check.verdict === "SKIPPED")) return "SKIPPED";
+  if (must.length === 0 || must.every((check) => check.verdict === "SKIPPED")) return "SKIPPED";
   return "PASS";
 }
