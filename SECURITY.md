@@ -14,9 +14,11 @@ code before running it.
   private-network filtering or sandboxed browser execution.
 - Run unknown workloads in separately permissioned, disposable infrastructure.
   Use timeouts, network restrictions and resource limits outside YouBrowser.
-- Current HTTP reads are bounded to 16 MiB per scenario by default. The
-  contract can raise this to at most 100 MiB. This is a per-response memory
-  budget, not a global crawl or request limit.
+- HTTP reads are bounded to 16 MiB per scenario by default (at most 100 MiB),
+  with a 50-request / 64-MiB aggregate default and hard limits of 500 requests
+  / 256 MiB per run. The adapter enforces explicit allowed origins and does
+  not follow redirects. These limits are not SSRF isolation, robots handling,
+  global infrastructure quotas, or proof that the target permits collection.
 
 ## Evidence
 
