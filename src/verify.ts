@@ -7,6 +7,7 @@ import type {
   Verdict,
 } from "./model.js";
 import { writeReport } from "./report.js";
+import { reportTarget } from "./redact.js";
 import { writeReceipt } from "./receipt.js";
 
 function overall(results: CheckResult[]): Verdict {
@@ -31,7 +32,7 @@ export async function verify(
 
   const report: AcceptanceReport = {
     version: 1,
-    target: contract.target,
+    target: reportTarget(contract.target),
     verdict: overall(results),
     startedAt,
     finishedAt,
