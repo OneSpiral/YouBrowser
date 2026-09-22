@@ -93,6 +93,7 @@ describe("acceptance receipt", () => {
     };
     const report: AcceptanceReport = {
       version: 1, target: contract.target, verdict: "PASS",
+      coverage: { complete: true, problems: [] },
       startedAt: "2026-09-22T00:00:00Z", finishedAt: "2026-09-22T00:00:01Z",
       scenarios: [{ id: "desktop", verdict: "PASS", evidence: { screenshot: "outside.png" }, checks: [] }],
       summary: { pass: 0, fail: 0, blocked: 0, skipped: 0, warnings: 0 },
