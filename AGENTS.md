@@ -17,8 +17,10 @@ claims traceable, not to manufacture confidence.
 
 ## Current scope
 
-The first adapter is `web`, backed by Playwright. Keep browser-specific behavior
-inside the browser adapter and generic acceptance semantics in the shared model.
+Implemented adapters are `web`, `http`, `file`, and `command`. Keep target-specific
+validation, execution, and checks inside each adapter; the shared model knows only
+generic Target / ScenarioSpec / CheckSpec / Evidence / Verdict semantics.
 
-Future adapters may accept files, APIs, images, commands, repositories, research
-artifacts, or content, but only when they can emit honest observations and evidence.
+Future adapters may accept JSON, images, repositories, crawl collections, performance
+runs, load tests, research artifacts, or content, but only when they can emit honest
+observations and evidence.
