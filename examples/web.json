@@ -1,0 +1,62 @@
+{
+  "version": 1,
+  "target": {
+    "kind": "web",
+    "baseUrl": "https://example.com"
+  },
+  "scenarios": [
+    {
+      "id": "desktop-light",
+      "path": "/",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "colorScheme": "light",
+      "reducedMotion": "no-preference"
+    },
+    {
+      "id": "mobile-dark",
+      "path": "/",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "colorScheme": "dark",
+      "reducedMotion": "reduce"
+    }
+  ],
+  "checks": [
+    {
+      "id": "status",
+      "type": "status",
+      "equals": 200,
+      "severity": "must"
+    },
+    {
+      "id": "heading",
+      "type": "text",
+      "selector": "h1",
+      "match": "contains",
+      "value": "Example Domain",
+      "severity": "must"
+    },
+    {
+      "id": "console",
+      "type": "console",
+      "maxErrors": 0,
+      "severity": "should"
+    },
+    {
+      "id": "horizontal-overflow",
+      "type": "overflow",
+      "axis": "x",
+      "maxPx": 0,
+      "severity": "must"
+    }
+  ],
+  "evidence": {
+    "dir": ".youbrowser",
+    "screenshots": true
+  }
+}

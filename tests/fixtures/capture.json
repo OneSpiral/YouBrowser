@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "target": {
+    "kind": "http",
+    "baseUrl": "http://127.0.0.1:4173"
+  },
+  "scenarios": [
+    {
+      "id": "dataset",
+      "path": "/data.json",
+      "timeoutMs": 5000
+    }
+  ],
+  "evidence": {
+    "dir": ".youbrowser-capture",
+    "body": true
+  }
+}

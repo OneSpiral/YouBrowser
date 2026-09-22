@@ -1,0 +1,7 @@
+{
+  "service": {
+    "name": "YouBrowser",
+    "healthy": true
+  },
+  "items": [1, 2, 3]
+}

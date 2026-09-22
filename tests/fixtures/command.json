@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "target": {
+    "kind": "command",
+    "executable": "node",
+    "args": ["--version"]
+  },
+  "scenarios": [
+    {
+      "id": "node",
+      "timeoutMs": 5000
+    }
+  ],
+  "checks": [
+    {
+      "id": "exit",
+      "type": "exit",
+      "equals": 0,
+      "severity": "must"
+    },
+    {
+      "id": "version",
+      "type": "stdout",
+      "match": "regex",
+      "value": "^v[0-9]+\\.",
+      "severity": "must"
+    },
+    {
+      "id": "duration",
+      "type": "duration",
+      "maxMs": 5000,
+      "severity": "must"
+    }
+  ]
+}

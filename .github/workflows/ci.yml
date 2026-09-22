@@ -1,0 +1,68 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+      - run: bun install
+      - run: bun run check
+      - run: bun test
+      - run: bun run build
+      - run: bunx playwright install --with-deps chromium
+      - name: Browser acceptance smoke
+        run: |
+          printf '\\000\\001\\377DATA' > tests/site/sample.bin
+          python3 -m http.server 4173 --directory tests/site >/tmp/youbrowser-site.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid"' EXIT
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:4173 >/dev/null; then
+              break
+            fi
+            sleep 0.2
+          done
+          bun run src/cli.ts verify tests/fixtures/web.json
+          bun run src/cli.ts receipt tests/fixtures/web.json
+          printf 'tampered' >> .youbrowser/desktop.png
+          if bun run src/cli.ts receipt tests/fixtures/web.json; then
+            echo 'receipt inspection accepted modified screenshot' >&2
+            exit 1
+          fi
+          bun run src/cli.ts verify tests/fixtures/http.json
+          bun run src/cli.ts receipt tests/fixtures/http.json
+          bun run src/cli.ts verify tests/fixtures/file.json
+          bun run src/cli.ts receipt tests/fixtures/file.json
+          bun run src/cli.ts verify tests/fixtures/command.json
+          bun run src/cli.ts receipt tests/fixtures/command.json
+          test -f .youbrowser/receipt.json
+          bun run src/cli.ts capture tests/fixtures/capture.json
+          test -f .youbrowser-capture/capture.json
+          test -f .youbrowser-capture/dataset.body.txt
+          cmp tests/site/data.json .youbrowser-capture/dataset.body.txt
+          bun run src/cli.ts capture tests/fixtures/capture-binary.json
+          cmp tests/site/sample.bin .youbrowser-binary/binary.body.bin
+          if bun run src/cli.ts capture tests/fixtures/capture-too-large.json; then
+            echo 'oversized response was silently accepted' >&2
+            exit 1
+          fi
+          test ! -f .youbrowser-large/oversize.body.txt
+          bun run src/cli.ts capture examples/batch.json
+          test -f .youbrowser-batch/home.body.txt
+          cmp tests/site/data.json .youbrowser-batch/data.body.txt
+          if bun run src/cli.ts capture tests/fixtures/capture-missing.json; then
+            echo 'missing capture returned success' >&2
+            exit 1
+          fi

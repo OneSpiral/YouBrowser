@@ -1,0 +1,6 @@
+{
+  "version": 1,
+  "target": { "kind": "file", "root": "." },
+  "scenarios": [{ "id": "missing", "path": "tests/fixtures/never-created-youbrowser.bin" }],
+  "evidence": { "dir": ".youbrowser-missing" }
+}

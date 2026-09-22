@@ -1,0 +1,6 @@
+{
+  "version": 1,
+  "target": { "kind": "http", "baseUrl": "http://127.0.0.1:4173" },
+  "scenarios": [{ "id": "oversize", "path": "/data.json", "maxBytes": 2 }],
+  "evidence": { "dir": ".youbrowser-large", "body": true }
+}

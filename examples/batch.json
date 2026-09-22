@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "target": {
+    "kind": "http",
+    "baseUrl": "http://127.0.0.1:4173",
+    "scope": {
+      "origins": ["http://127.0.0.1:4173"],
+      "maxRequests": 2,
+      "maxTotalBytes": 1048576,
+      "minDelayMs": 250
+    }
+  },
+  "scenarios": [
+    { "id": "home", "path": "/", "maxBytes": 524288 },
+    { "id": "data", "path": "/data.json", "maxBytes": 524288 }
+  ],
+  "evidence": {
+    "dir": ".youbrowser-batch",
+    "body": true
+  }
+}

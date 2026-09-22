@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "target": {
+    "kind": "http",
+    "baseUrl": "http://127.0.0.1:4173"
+  },
+  "scenarios": [
+    {
+      "id": "json",
+      "path": "/data.json",
+      "method": "GET",
+      "timeoutMs": 5000
+    }
+  ],
+  "checks": [
+    {
+      "id": "status",
+      "type": "status",
+      "equals": 200,
+      "severity": "must"
+    },
+    {
+      "id": "content-type",
+      "type": "header",
+      "name": "content-type",
+      "match": "contains",
+      "value": "application/json",
+      "severity": "must"
+    },
+    {
+      "id": "service-name",
+      "type": "json",
+      "path": "service.name",
+      "equals": "YouBrowser",
+      "severity": "must"
+    },
+    {
+      "id": "healthy",
+      "type": "json",
+      "path": "service.healthy",
+      "equals": true,
+      "severity": "must"
+    },
+    {
+      "id": "latency",
+      "type": "latency",
+      "maxMs": 5000,
+      "severity": "must"
+    }
+  ]
+}
