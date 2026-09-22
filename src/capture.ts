@@ -2,6 +2,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { getAdapter } from "./adapter.js";
 import { digestArtifacts } from "./artifact.js";
+import { reportTarget } from "./redact.js";
 import type {
   AcceptanceContract,
   CaptureContract,
@@ -39,7 +40,7 @@ export async function capture(
   const artifacts = await digestArtifacts(scenarios, evidenceDir, cwd);
   const report: CaptureReport = {
     version: 1,
-    target: contract.target,
+    target: reportTarget(contract.target),
     startedAt,
     finishedAt,
     artifacts,
