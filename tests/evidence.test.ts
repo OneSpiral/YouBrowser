@@ -57,6 +57,7 @@ describe("acceptance receipt", () => {
       version: 1,
       target: contract.target,
       verdict: "PASS",
+      coverage: { complete: true, problems: [] },
       startedAt: "2026-09-22T00:00:00Z",
       finishedAt: "2026-09-22T00:00:01Z",
       scenarios: [{
