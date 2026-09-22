@@ -27,15 +27,23 @@ export async function capture(
   const executed = await adapter.run(executionContract, { cwd, evidenceDir });
   const finishedAt = new Date().toISOString();
 
+  const scenarios = executed.map((scenario) => ({
+    id: scenario.id,
+    state: (typeof scenario.evidence.error === "string" ? "BLOCKED" : "CAPTURED") as
+      | "BLOCKED"
+      | "CAPTURED",
+    evidence: scenario.evidence,
+  }));
   const report: CaptureReport = {
     version: 1,
     target: contract.target,
     startedAt,
     finishedAt,
-    scenarios: executed.map((scenario) => ({
-      id: scenario.id,
-      evidence: scenario.evidence,
-    })),
+    summary: {
+      captured: scenarios.filter((scenario) => scenario.state === "CAPTURED").length,
+      blocked: scenarios.filter((scenario) => scenario.state === "BLOCKED").length,
+    },
+    scenarios,
   };
 
   await mkdir(evidenceDir, { recursive: true });
