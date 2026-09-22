@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "target": {
+    "kind": "file",
+    "root": "."
+  },
+  "scenarios": [
+    {
+      "id": "package",
+      "path": "package.json"
+    }
+  ],
+  "checks": [
+    {
+      "id": "exists",
+      "type": "exists",
+      "equals": true,
+      "severity": "must"
+    },
+    {
+      "id": "nonempty",
+      "type": "size",
+      "min": 100,
+      "severity": "must"
+    },
+    {
+      "id": "name",
+      "type": "json",
+      "path": "name",
+      "equals": "youbrowser",
+      "severity": "must"
+    },
+    {
+      "id": "playwright",
+      "type": "json",
+      "path": "dependencies.playwright",
+      "exists": true,
+      "severity": "must"
+    }
+  ]
+}
