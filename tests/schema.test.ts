@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { parseContract } from "../src/schema.js";
+import { parseCaptureContract, parseContract } from "../src/schema.js";
 
 const valid = {
   version: 1,
@@ -29,6 +29,21 @@ describe("acceptance contract", () => {
         checks: [{ id: "console", type: "console", maxErrors: 0, severity: "should" }],
       }),
     ).toThrow("at least one must");
+  });
+
+  test("allows capture without acceptance checks", () => {
+    const captured = parseCaptureContract({
+      version: 1,
+      target: { kind: "http", baseUrl: "https://example.com" },
+      scenarios: [{ id: "dataset", path: "/data.json" }],
+    });
+    expect(captured.target.kind).toBe("http");
+  });
+
+  test("rejects acceptance checks in capture mode", () => {
+    expect(() =>
+      parseCaptureContract(valid),
+    ).toThrow("do not accept checks");
   });
 
   test("rejects checks scoped to an unknown scenario", () => {
