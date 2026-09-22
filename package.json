@@ -20,7 +20,8 @@
     "build": "tsc -p tsconfig.json",
     "check": "tsc -p tsconfig.json --noEmit",
     "test": "bun test",
-    "verify:example": "bun run src/cli.ts verify examples/web.json"
+    "verify:example": "bun run src/cli.ts verify examples/web.json",
+    "prepare": "bun run build"
   },
   "dependencies": {
     "playwright": "1.63.0"
