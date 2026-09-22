@@ -54,9 +54,11 @@ The v0.1 draft establishes the protocol and implements four adapters:
 - console/page-error budgets
 - overflow checks
 - screenshots
+- single-browser-navigation TTFB and DOMContentLoaded observations/checks
 - JSON + Markdown evidence reports
 - fail-closed contract parsing
 - bounded HTTP response collection (16 MiB default, up to 100 MiB per scenario)
+- origin-scoped, serial multi-request HTTP capture with request/byte/delay budgets
 - binary-safe raw HTTP capture, with per-artifact SHA-256
 - receipt inspection that rechecks report and artifact bytes
 
@@ -170,10 +172,17 @@ A verify contract must contain at least one `must` check. Empty verification can
 
 A capture contract accepts no checks and emits no acceptance verdict. If criteria matter, use `verify`.
 
+The runtime audits the declared scenario/check matrix before issuing PASS.
+Missing, duplicate, or wrongly skipped results cause a coverage failure and
+`BLOCKED` (unless an actual required check already establishes `FAIL`).
+
 Every completed verify execution writes `receipt.json` with SHA-256 fingerprints for the original normalized contract, the exact JSON report bytes, retained screenshot/body artifacts, and the receipt payload itself. Run `youbrowser receipt contract.json` to recheck local bytes. This detects drift; it is **not** a cryptographic signature, independent attestation, or protection against someone rewriting all files.
 
 Capture reports use `CAPTURED / BLOCKED` *observation states*, not acceptance verdicts. Missing evidence makes the CLI return a non-zero exit code. Sensitive target headers/environment keys and response headers are redacted in persisted reports, without modifying the executable contract. Explicit raw body capture may still contain personal or secret data; protect the evidence directory.
 
+HTTP collection is explicitly origin-scoped (base origin by default), serial,
+and governed by request/aggregate-byte budgets. It does not follow redirects
+or automatically discover links. This is not a full Crawl adapter.
 HTTP capture preserves the original response bytes. Textual responses use `<id>.body.txt`, binary responses use `<id>.body.bin`. `maxBytes` defaults to 16 MiB per scenario (hard cap: 100 MiB); over-budget responses are blocked rather than saved partially.
 
 ## Architecture
