@@ -41,7 +41,7 @@ The v0.1 draft establishes the protocol and implements four adapters:
 - `web` — real-browser verification via Playwright/Chromium
 - `http` — API/data-source verification with status/header/body/JSON/latency checks
 - `file` — artifact verification with existence/size/text/JSON checks and SHA-256 evidence
-- `command` — shell-free process verification with exit/stdout/stderr/duration checks
+- `command` — shell-free, output-bounded process verification with exit/stdout/stderr/duration checks
 - desktop/mobile or arbitrary viewport scenarios
 - light/dark colour scheme
 - reduced-motion scenarios
