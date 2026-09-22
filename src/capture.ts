@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 import { getAdapter } from "./adapter.js";
 import { digestArtifacts } from "./artifact.js";
 import { reportTarget } from "./redact.js";
+import { parseCaptureContract } from "./schema.js";
 import type {
   AcceptanceContract,
   CaptureContract,
@@ -13,17 +14,18 @@ export async function capture(
   contract: CaptureContract,
   options: { cwd?: string } = {},
 ): Promise<CaptureReport> {
+  const validated = parseCaptureContract(contract);
   const cwd = options.cwd ?? process.cwd();
-  const evidenceDir = resolve(cwd, contract.evidence?.dir ?? ".youbrowser");
+  const evidenceDir = resolve(cwd, validated.evidence?.dir ?? ".youbrowser");
   const startedAt = new Date().toISOString();
-  const adapter = getAdapter(contract.target.kind);
+  const adapter = getAdapter(validated.target.kind);
 
   const executionContract: AcceptanceContract = {
     version: 1,
-    target: contract.target,
-    scenarios: contract.scenarios,
+    target: validated.target,
+    scenarios: validated.scenarios,
     checks: [],
-    ...(contract.evidence ? { evidence: contract.evidence } : {}),
+    ...(validated.evidence ? { evidence: validated.evidence } : {}),
   };
 
   const executed = await adapter.run(executionContract, { cwd, evidenceDir });
@@ -40,7 +42,7 @@ export async function capture(
   const artifacts = await digestArtifacts(scenarios, evidenceDir, cwd);
   const report: CaptureReport = {
     version: 1,
-    target: reportTarget(contract.target),
+    target: reportTarget(validated.target),
     startedAt,
     finishedAt,
     artifacts,
