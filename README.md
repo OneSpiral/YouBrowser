@@ -36,7 +36,7 @@ There is no universal quality score.
 
 ## Current status
 
-v0.1 establishes the protocol and ships four adapters:
+The v0.1 draft establishes the protocol and implements four adapters:
 
 - `web` — real-browser verification via Playwright/Chromium
 - `http` — API/data-source verification with status/header/body/JSON/latency checks
@@ -56,6 +56,9 @@ v0.1 establishes the protocol and ships four adapters:
 - screenshots
 - JSON + Markdown evidence reports
 - fail-closed contract parsing
+- bounded HTTP response collection (16 MiB default, up to 100 MiB per scenario)
+- binary-safe raw HTTP capture, with per-artifact SHA-256
+- receipt inspection that rechecks report and artifact bytes
 
 Future target adapters can extend the same protocol without changing verdict semantics.
 
@@ -130,6 +133,7 @@ or after building:
 
 ```bash
 youbrowser verify contract.json
+youbrowser receipt contract.json  # inspect retained report and artifact bytes
 youbrowser capture capture.json
 ```
 
@@ -166,7 +170,11 @@ A verify contract must contain at least one `must` check. Empty verification can
 
 A capture contract accepts no checks and emits no acceptance verdict. If criteria matter, use `verify`.
 
-Every successful verify execution writes `receipt.json` with SHA-256 fingerprints for the normalized contract, exact JSON report bytes, and the receipt payload itself. The receipt is evidence of what YouBrowser evaluated; it is not a cryptographic signature or external attestation.
+Every completed verify execution writes `receipt.json` with SHA-256 fingerprints for the original normalized contract, the exact JSON report bytes, retained screenshot/body artifacts, and the receipt payload itself. Run `youbrowser receipt contract.json` to recheck local bytes. This detects drift; it is **not** a cryptographic signature, independent attestation, or protection against someone rewriting all files.
+
+Capture reports use `CAPTURED / BLOCKED` *observation states*, not acceptance verdicts. Missing evidence makes the CLI return a non-zero exit code. Sensitive target headers/environment keys and response headers are redacted in persisted reports, without modifying the executable contract. Explicit raw body capture may still contain personal or secret data; protect the evidence directory.
+
+HTTP capture preserves the original response bytes. Textual responses use `<id>.body.txt`, binary responses use `<id>.body.bin`. `maxBytes` defaults to 16 MiB per scenario (hard cap: 100 MiB); over-budget responses are blocked rather than saved partially.
 
 ## Architecture
 
@@ -217,7 +225,7 @@ content + editorial criteria
 6. **Protocol before plugins.** New result types extend adapters instead of forking acceptance semantics.
 7. **Machine and human judgment stay distinguishable.** A deterministic assertion and a qualitative review are different evidence classes.
 
-See [docs/protocol.md](docs/protocol.md) for the protocol contract.
+See [docs/protocol.md](docs/protocol.md) for the protocol contract and [SECURITY.md](SECURITY.md) for the trusted-contract/evidence boundary.
 
 ## Holar
 
@@ -233,7 +241,7 @@ Holar
   owns: composition canon, taste canon, design criteria, Golden promotion policy
 ```
 
-That keeps the reusable acceptance engine open-source and prevents Holar's domain rules from leaking into the runtime.
+That keeps the reusable acceptance engine independent of Holar's domain rules. This public repository is **not yet an open-source release** until an explicit LICENSE is selected and added.
 
 ## Development
 
