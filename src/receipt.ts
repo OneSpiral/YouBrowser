@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { digestArtifacts } from "./artifact.js";
 import { writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import type {
@@ -33,7 +34,9 @@ export async function writeReceipt(
   report: AcceptanceReport,
   reportJson: string,
   evidenceDir: string,
+  cwd: string,
 ): Promise<AcceptanceReceipt> {
+  const artifacts = await digestArtifacts(report.scenarios, evidenceDir, cwd);
   const base = {
     version: 1 as const,
     protocol: 1 as const,
@@ -42,6 +45,7 @@ export async function writeReceipt(
     verdict: report.verdict,
     contractSha256: sha256(canonicalJson(contract)),
     reportSha256: sha256(reportJson),
+    artifacts,
     startedAt: report.startedAt,
     finishedAt: report.finishedAt,
     summary: report.summary,
