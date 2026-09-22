@@ -118,6 +118,7 @@ export const browserAdapter: Adapter = {
             consoleErrors,
             pageErrors,
             ...(screenshot ? { screenshot: relative(context.cwd, screenshot) } : {}),
+            ...(scenarioBlocked ? { error: scenarioBlocked } : {}),
           },
           checks,
         });
