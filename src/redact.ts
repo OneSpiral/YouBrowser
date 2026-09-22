@@ -1,6 +1,6 @@
 import type { Target } from "./model.js";
 
-const sensitive = /^(?:authorization|proxy-authorization|cookie|set-cookie|x-api-key|api[-_]?key|.*(?:password|passwd|secret|credential|private[-_]?key|access[-_]?token|refresh[-_]?token|auth[-_]?token|session[-_]?token).*)$/i;
+const sensitive = /^(?:authorization|proxy-authorization|cookie|set-cookie|x-api-key|api[-_]?key|token|secret|password|passwd|credential|.*(?:password|passwd|secret|credential|private[-_]?key|access[-_]?token|refresh[-_]?token|auth[-_]?token|session[-_]?token|api[-_]?key).*)$/i;
 const REDACTED = "[REDACTED]";
 
 /**
