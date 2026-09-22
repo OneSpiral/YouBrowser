@@ -1,0 +1,69 @@
+{
+  "version": 1,
+  "target": {
+    "kind": "web",
+    "baseUrl": "http://127.0.0.1:4173"
+  },
+  "scenarios": [
+    {
+      "id": "desktop",
+      "path": "/",
+      "viewport": { "width": 1440, "height": 900 },
+      "colorScheme": "light",
+      "reducedMotion": "no-preference"
+    },
+    {
+      "id": "mobile",
+      "path": "/",
+      "viewport": { "width": 390, "height": 844 },
+      "colorScheme": "dark",
+      "reducedMotion": "reduce"
+    }
+  ],
+  "checks": [
+    {
+      "id": "status",
+      "type": "status",
+      "equals": 200,
+      "severity": "must"
+    },
+    {
+      "id": "title",
+      "type": "title",
+      "match": "equals",
+      "value": "YouBrowser Fixture",
+      "severity": "must"
+    },
+    {
+      "id": "heading",
+      "type": "text",
+      "selector": "h1",
+      "match": "equals",
+      "value": "YouBrowser",
+      "severity": "must"
+    },
+    {
+      "id": "visible-status",
+      "type": "visible",
+      "selector": "[data-testid='status']",
+      "severity": "must"
+    },
+    {
+      "id": "runtime-errors",
+      "type": "console",
+      "maxErrors": 0,
+      "severity": "must"
+    },
+    {
+      "id": "horizontal-overflow",
+      "type": "overflow",
+      "axis": "x",
+      "maxPx": 0,
+      "severity": "must"
+    }
+  ],
+  "evidence": {
+    "dir": ".youbrowser",
+    "screenshots": true
+  }
+}
