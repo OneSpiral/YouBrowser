@@ -1,0 +1,6 @@
+{
+  "version": 1,
+  "target": { "kind": "http", "baseUrl": "http://127.0.0.1:4173" },
+  "scenarios": [{ "id": "binary", "path": "/sample.bin", "maxBytes": 1024 }],
+  "evidence": { "dir": ".youbrowser-binary", "body": true }
+}
