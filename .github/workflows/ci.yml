@@ -24,6 +24,7 @@ jobs:
       - run: bunx playwright install --with-deps chromium
       - name: Browser acceptance smoke
         run: |
+          printf '\\000\\001\\377DATA' > tests/site/sample.bin
           python3 -m http.server 4173 --directory tests/site >/tmp/youbrowser-site.log 2>&1 &
           server_pid=$!
           trap 'kill "$server_pid"' EXIT
@@ -50,6 +51,14 @@ jobs:
           bun run src/cli.ts capture tests/fixtures/capture.json
           test -f .youbrowser-capture/capture.json
           test -f .youbrowser-capture/dataset.body.txt
+          cmp tests/site/data.json .youbrowser-capture/dataset.body.txt
+          bun run src/cli.ts capture tests/fixtures/capture-binary.json
+          cmp tests/site/sample.bin .youbrowser-binary/binary.body.bin
+          if bun run src/cli.ts capture tests/fixtures/capture-too-large.json; then
+            echo 'oversized response was silently accepted' >&2
+            exit 1
+          fi
+          test ! -f .youbrowser-large/oversize.body.txt
           if bun run src/cli.ts capture tests/fixtures/capture-missing.json; then
             echo 'missing capture returned success' >&2
             exit 1
