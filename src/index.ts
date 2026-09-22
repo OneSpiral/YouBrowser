@@ -1,7 +1,13 @@
 import { registerAdapter } from "./adapter.js";
 import { browserAdapter } from "./browser.js";
+import { commandAdapter } from "./command.js";
+import { fileAdapter } from "./file.js";
+import { httpAdapter } from "./http.js";
 
 registerAdapter(browserAdapter);
+registerAdapter(httpAdapter);
+registerAdapter(commandAdapter);
+registerAdapter(fileAdapter);
 
 export { adapterKinds, getAdapter, registerAdapter } from "./adapter.js";
 export type { Adapter, RunContext } from "./adapter.js";
