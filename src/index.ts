@@ -3,9 +3,11 @@ import { browserAdapter } from "./browser.js";
 import { commandAdapter } from "./command.js";
 import { fileAdapter } from "./file.js";
 import { httpAdapter } from "./http.js";
+import { jsonAdapter } from "./json.js";
 
 registerAdapter(browserAdapter);
 registerAdapter(httpAdapter);
+registerAdapter(jsonAdapter);
 registerAdapter(commandAdapter);
 registerAdapter(fileAdapter);
 
