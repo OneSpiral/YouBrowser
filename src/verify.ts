@@ -48,6 +48,6 @@ export async function verify(
   };
 
   const written = await writeReport(report, evidenceDir);
-  await writeReceipt(contract, report, written.jsonText, evidenceDir);
+  await writeReceipt(contract, report, written.jsonText, evidenceDir, cwd);
   return report;
 }
