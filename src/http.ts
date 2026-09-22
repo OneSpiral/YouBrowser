@@ -213,7 +213,7 @@ export const httpAdapter: Adapter = {
       const url = new URL(scenario.path ?? "/", target.baseUrl).toString();
       const started = performance.now();
       let response: Response | null = null;
-      let body = Buffer.alloc(0);
+      let body: Buffer<ArrayBufferLike> = Buffer.alloc(0);
       let text = "";
       let blocked: string | null = null;
 
