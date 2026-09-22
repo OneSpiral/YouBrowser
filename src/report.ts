@@ -10,7 +10,7 @@ function line(check: CheckResult): string {
 export async function writeReport(
   report: AcceptanceReport,
   evidenceDir: string,
-): Promise<{ json: string; markdown: string }> {
+): Promise<{ json: string; markdown: string; jsonText: string }> {
   await mkdir(evidenceDir, { recursive: true });
   const json = resolve(evidenceDir, "report.json");
   const markdown = resolve(evidenceDir, "report.md");
@@ -45,10 +45,11 @@ export async function writeReport(
     ]),
   ].join("\n");
 
+  const jsonText = `${JSON.stringify(report, null, 2)}\n`;
   await Promise.all([
-    writeFile(json, `${JSON.stringify(report, null, 2)}\n`),
+    writeFile(json, jsonText),
     writeFile(markdown, `${body}\n`),
   ]);
 
-  return { json, markdown };
+  return { json, markdown, jsonText };
 }
