@@ -7,6 +7,7 @@ import type {
   Verdict,
 } from "./model.js";
 import { writeReport } from "./report.js";
+import { writeReceipt } from "./receipt.js";
 
 function overall(results: CheckResult[]): Verdict {
   const must = results.filter((result) => result.severity === "must");
@@ -46,6 +47,7 @@ export async function verify(
     },
   };
 
-  await writeReport(report, evidenceDir);
+  const written = await writeReport(report, evidenceDir);
+  await writeReceipt(contract, report, written.jsonText, evidenceDir);
   return report;
 }
